@@ -20,6 +20,7 @@ import {config as analyticsWebConfig} from './tests/analytics-web/main/config';
 import {config as announcementsWebConfig} from './tests/announcements-web/main/config';
 import {config as applicationListTaglibConfig} from './tests/application-list-taglib/main/config';
 import {config as assetCategoriesAdminWebConfig} from './tests/asset-categories-admin-web/main/config';
+import {config as assetListWebConfig} from './tests/asset-list-web/main/config';
 import {config as assetPublisherWebConfig} from './tests/asset-publisher-web/main/config';
 import {config as assetPublisherWebRelatedAssetsConfig} from './tests/asset-publisher-web/related-assets/config';
 import {config as assetTagsAdminWebConfig} from './tests/asset-tags-admin-web/main/config';
@@ -163,6 +164,7 @@ import {config as passwordPoliciesAdminWebSetupAdminConfig} from './tests/passwo
 import {config as portalDefaultPermissionsWebConfig} from './tests/portal-default-permissions-web/main/config';
 import {config as portalImplMainConfig} from './tests/portal-impl/main/config';
 import {config as portalImplPortletConfig} from './tests/portal-impl/portlet/config';
+import {config as portalInstancesWebConfig} from './tests/portal-instances-web/main/config';
 import {config as portalLanguageOverrideWebConfig} from './tests/portal-language-override-web/main/config';
 import {config as portalSearchAdminWebConfig} from './tests/portal-search-admin-web/main/config';
 import {config as portalSearchWebConfig} from './tests/portal-search-web/main/config';
@@ -209,6 +211,7 @@ import {config as siteCmpSiteInitializerConfig} from './tests/site-cmp-site-init
 import {config as siteCmsSiteInitializerConfig} from './tests/site-cms-site-initializer/main/config';
 import {config as siteCmsSiteInitializerPermissionsConfig} from './tests/site-cms-site-initializer/permissions/config';
 import {config as siteCmsSiteInitializerStructureBuilderConfig} from './tests/site-cms-site-initializer/structure-builder/config';
+import {config as siteCmsStandaloneSiteInitializerConfig} from './tests/site-cms-standalone-site-initializer/main/config';
 import {config as siteDsrSiteInitializerConfig} from './tests/site-dsr-site-initializer/main/config';
 import {config as siteMySitesWebConfig} from './tests/site-my-sites-web/main/config';
 import {config as siteNavigationAdminWebConfig} from './tests/site-navigation-admin-web/main/config';
@@ -265,6 +268,7 @@ export default defineConfig({
 		announcementsWebConfig,
 		applicationListTaglibConfig,
 		assetCategoriesAdminWebConfig,
+		assetListWebConfig,
 		assetPublisherWebConfig,
 		assetPublisherWebRelatedAssetsConfig,
 		assetTagsAdminWebConfig,
@@ -410,6 +414,7 @@ export default defineConfig({
 		portalDefaultPermissionsWebConfig,
 		portalImplMainConfig,
 		portalImplPortletConfig,
+		portalInstancesWebConfig,
 		portalLanguageOverrideWebConfig,
 		portalSearchAdminWebConfig,
 		portalSearchWebConfig,
@@ -451,6 +456,7 @@ export default defineConfig({
 		siteCmsSiteInitializerConfig,
 		siteCmsSiteInitializerPermissionsConfig,
 		siteCmsSiteInitializerStructureBuilderConfig,
+		siteCmsStandaloneSiteInitializerConfig,
 		siteDsrSiteInitializerConfig,
 		siteMySitesWebConfig,
 		siteNavigationAdminWebConfig,
