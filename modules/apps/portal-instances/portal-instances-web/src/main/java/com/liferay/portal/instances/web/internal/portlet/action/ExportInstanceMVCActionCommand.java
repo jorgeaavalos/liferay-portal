@@ -74,10 +74,10 @@ public class ExportInstanceMVCActionCommand extends BaseMVCActionCommand {
 					GetterUtil.getString(exception.getMessage())));
 		}
 
-		hideDefaultSuccessMessage(actionRequest);
-
 		JSONPortletResponseUtil.writeJSON(
 			actionRequest, actionResponse, jsonObject);
+
+		hideDefaultSuccessMessage(actionRequest);
 	}
 
 	private void _checkPermission() throws PrincipalException {
