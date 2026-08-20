@@ -215,6 +215,7 @@ import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 
 import java.text.DateFormat;
@@ -7510,7 +7511,8 @@ public class UserLocalServiceImpl extends UserLocalServiceBaseImpl {
 					connection,
 					CustomSQLUtil.get(
 						UserLocalServiceImpl.class.getName() +
-							".updateLastLogin"))) {
+							".updateLastLogin"),
+					true)) {
 
 			for (User user : users) {
 				preparedStatement.setTimestamp(
@@ -7530,7 +7532,9 @@ public class UserLocalServiceImpl extends UserLocalServiceBaseImpl {
 			for (int i = 0; i < results.length; i++) {
 				User user = users.get(i);
 
-				if (results[i] == 1) {
+				if ((results[i] > 0) ||
+					(results[i] == Statement.SUCCESS_NO_INFO)) {
+
 					EntityCacheUtil.putResult(
 						UserImpl.class, user, true, false);
 				}
