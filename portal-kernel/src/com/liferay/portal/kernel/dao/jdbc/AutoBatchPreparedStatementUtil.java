@@ -282,7 +282,12 @@ public class AutoBatchPreparedStatementUtil {
 				return;
 			}
 
-			_rowCounts = ArrayUtil.append(_rowCounts, rowCounts);
+			_ensureRowCountsCapacity(_rowCountsSize + rowCounts.length);
+
+			System.arraycopy(
+				rowCounts, 0, _rowCounts, _rowCountsSize, rowCounts.length);
+
+			_rowCountsSize += rowCounts.length;
 		}
 
 		@Override
@@ -311,9 +316,10 @@ public class AutoBatchPreparedStatementUtil {
 
 			addRowCounts(rowCounts);
 
-			int[] flushedRowCounts = _rowCounts;
+			int[] flushedRowCounts = ArrayUtil.subset(
+				_rowCounts, 0, _rowCountsSize);
 
-			_rowCounts = new int[0];
+			_rowCountsSize = 0;
 
 			return flushedRowCounts;
 		}
@@ -333,10 +339,22 @@ public class AutoBatchPreparedStatementUtil {
 				return;
 			}
 
-			_rowCounts = ArrayUtil.append(_rowCounts, rowCount);
+			_ensureRowCountsCapacity(_rowCountsSize + 1);
+
+			_rowCounts[_rowCountsSize++] = rowCount;
+		}
+
+		private void _ensureRowCountsCapacity(int capacity) {
+			if (capacity <= _rowCounts.length) {
+				return;
+			}
+
+			_rowCounts = ArrayUtil.clone(
+				_rowCounts, 0, Math.max(capacity, _rowCounts.length * 2));
 		}
 
 		private int[] _rowCounts;
+		private int _rowCountsSize;
 
 	}
 
