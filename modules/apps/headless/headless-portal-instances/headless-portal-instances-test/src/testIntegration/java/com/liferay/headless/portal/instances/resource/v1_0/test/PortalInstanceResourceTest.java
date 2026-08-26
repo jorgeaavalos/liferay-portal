@@ -869,8 +869,6 @@ public class PortalInstanceResourceTest
 
 			configurations.add(groupConfiguration);
 
-			long nonexistentGroupId = RandomTestUtil.randomLong();
-
 			Configuration nonexistentGroupConfiguration =
 				_createScopedConfiguration(
 					HashMapDictionaryBuilder.<String, Object>put(
@@ -880,7 +878,7 @@ public class PortalInstanceResourceTest
 					).put(
 						ExtendedObjectClassDefinition.Scope.GROUP.
 							getPropertyKey(),
-						nonexistentGroupId
+						RandomTestUtil.randomLong()
 					).build());
 
 			configurations.add(nonexistentGroupConfiguration);
