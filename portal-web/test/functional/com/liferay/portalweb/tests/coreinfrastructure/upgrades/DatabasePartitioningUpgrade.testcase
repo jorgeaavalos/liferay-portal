@@ -160,7 +160,6 @@ definition {
 
 		task ("Export www.able.com and www.baker.com partitions and shutdown the server") {
 			var ableCompanyId = DBPartition.exportDBPartition(portalInstanceId = "www.able.com");
-
 			var bakerCompanyId = DBPartition.exportDBPartition(portalInstanceId = "www.baker.com");
 
 			Clustering.shutdownSpecificServer(nodePort = 8080);

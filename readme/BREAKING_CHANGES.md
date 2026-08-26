@@ -1906,6 +1906,7 @@ When reading the field, treat the value as an array of `ListEntry` objects and r
 ### Why was this change made?
 
 The field holds multiple values, so a single comma-separated string could not be parsed unambiguously and did not match the representation used for the same field on the object entry APIs. Exposing it as an array of `ListEntry` objects makes the value self-describing and consistent across the headless APIs.
+
 ---------------------------------------
 
 ## Removed the System Settings triggers for virtual instance copy, export, and import
