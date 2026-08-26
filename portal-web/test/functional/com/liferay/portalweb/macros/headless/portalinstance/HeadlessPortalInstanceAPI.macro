@@ -172,7 +172,7 @@ definition {
 
 	@summary = "Export the ${portalInstanceId} portal instance into a standalone partition"
 	macro exportPortalInstance(authenticationMethod = null, portalInstanceId = null) {
-		Variables.assertDefined(parameterList = "${portalInstanceId}");
+		Variables.assertDefined(parameterList = ${portalInstanceId});
 
 		var portalURL = JSONCompany.getDefaultPortalURL();
 		var portalInstanceId = StringUtil.replace(${portalInstanceId}, " ", "%20");
@@ -197,7 +197,7 @@ definition {
 
 	@summary = "Import the ${schemaName} standalone partition as a portal instance"
 	macro importPortalInstance(authenticationMethod = null, name = null, schemaName = null, virtualHost = null, webId = null) {
-		Variables.assertDefined(parameterList = "${schemaName}");
+		Variables.assertDefined(parameterList = ${schemaName});
 
 		var portalURL = JSONCompany.getDefaultPortalURL();
 		var parameters = JSONUtil2._addJSONObject(

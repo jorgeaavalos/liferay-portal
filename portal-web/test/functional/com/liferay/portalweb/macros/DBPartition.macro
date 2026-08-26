@@ -15,7 +15,7 @@ definition {
 
 	@summary = "Imports a standalone DB Partition as a new company"
 	macro importDBPartition(partitionCompanyId = null) {
-		Variables.assertDefined(parameterList = "${partitionCompanyId}");
+		Variables.assertDefined(parameterList = ${partitionCompanyId});
 
 		HeadlessPortalInstanceAPI.importPortalInstance(schemaName = "lexported_${partitionCompanyId}");
 	}
