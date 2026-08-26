@@ -1,13 +1,13 @@
 definition {
 
 	@summary = "Exports an integrated DB Partition into a standalone partition"
-	macro exportDBPartition(partitionCompanyId = null, portalInstanceId = null) {
+	macro exportDBPartition(expectedCompanyId = null, portalInstanceId = null) {
 		var sourceCompanyId = HeadlessPortalInstanceAPI.exportPortalInstance(portalInstanceId = ${portalInstanceId});
 
-		if (isSet(partitionCompanyId)) {
+		if (isSet(expectedCompanyId)) {
 			TestUtils.assertEquals(
 				actual = ${sourceCompanyId},
-				expected = ${partitionCompanyId});
+				expected = ${expectedCompanyId});
 		}
 
 		return ${sourceCompanyId};
@@ -15,6 +15,8 @@ definition {
 
 	@summary = "Imports a standalone DB Partition as a new company"
 	macro importDBPartition(partitionCompanyId = null) {
+		Variables.assertDefined(parameterList = "${partitionCompanyId}");
+
 		HeadlessPortalInstanceAPI.importPortalInstance(schemaName = "lexported_${partitionCompanyId}");
 	}
 
