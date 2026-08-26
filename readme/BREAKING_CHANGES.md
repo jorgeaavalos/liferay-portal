@@ -1932,4 +1932,4 @@ Copy and export can also be triggered from the Virtual Instances page in the Con
 
 ### Why was this change made?
 
-A configuration entry is a poor trigger for a one-shot operation. It returns nothing to the caller, and the only record that the operation succeeded was an `INFO` log line. The headless API returns the outcome instead, including the name of the schema an export produced, and it is permission-checked.
+A configuration entry is a poor trigger for a one shot operation. It returns nothing to the caller, and the only record that the operation succeeded was an `INFO` log line. The headless API returns the outcome instead, including the name of the schema an export produced, and it is permission checked.
