@@ -136,6 +136,10 @@ public class PortalInstanceExporterImplTest {
 				_COMPANY_ID_1));
 
 		_assertNoConfigurationExported();
+
+		_dbPartitionUtilMockedStatic.verify(
+			() -> DBPartitionUtil.removeExportedPartition(_COMPANY_ID_1),
+			Mockito.never());
 	}
 
 	@Test
@@ -158,6 +162,9 @@ public class PortalInstanceExporterImplTest {
 			SQLException.class,
 			() -> _portalInstanceExporterImpl.exportPortalInstance(
 				_COMPANY_ID_1));
+
+		_dbPartitionUtilMockedStatic.verify(
+			() -> DBPartitionUtil.removeExportedPartition(_COMPANY_ID_1));
 	}
 
 	@Test
