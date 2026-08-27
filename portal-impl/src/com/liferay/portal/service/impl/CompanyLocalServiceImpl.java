@@ -761,6 +761,9 @@ public class CompanyLocalServiceImpl extends CompanyLocalServiceBaseImpl {
 
 			DBPartitionUtil.exportDBPartition(companyId);
 		}
+		catch (IllegalArgumentException illegalArgumentException) {
+			throw illegalArgumentException;
+		}
 		catch (Throwable throwable) {
 			throw new PortalException(throwable);
 		}

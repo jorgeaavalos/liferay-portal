@@ -76,11 +76,35 @@ public class ExportPortalInstanceOperation extends BasePortalInstanceOperation {
 					return null;
 				}
 
-				Company company = _companyLocalService.exportCompany(companyId);
+				String exportedPartitionName =
+					DBPartitionUtil.getExportedPartitionName(companyId);
 
-				_exportConfigurations(companyId);
+				try {
+					Company company = _companyLocalService.exportCompany(
+						companyId);
 
-				return company;
+					_exportConfigurations(companyId);
+
+					return company;
+				}
+				catch (IllegalArgumentException illegalArgumentException) {
+					throw illegalArgumentException;
+				}
+				catch (Exception exception) {
+					try {
+						DBPartitionUtil.removeExportedPartition(companyId);
+					}
+					catch (Exception dropException) {
+						exception.addSuppressed(dropException);
+					}
+
+					_log.error(
+						"Unable to export configurations to schema " +
+							exportedPartitionName,
+						exception);
+
+					throw exception;
+				}
 			},
 			properties);
 	}

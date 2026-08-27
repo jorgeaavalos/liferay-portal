@@ -76,8 +76,7 @@ public class PortalInstanceExporterImplTest {
 			_portalInstanceExporterImpl.exportPortalInstance(_COMPANY_ID_1);
 
 		Assert.assertEquals(
-			DBPartitionUtil.DATABASE_EXPORTED_PARTITION_SCHEMA_NAME_PREFIX +
-				_COMPANY_ID_1,
+			DBPartitionUtil.getExportedPartitionName(_COMPANY_ID_1),
 			exportedPartitionName);
 
 		Mockito.verify(
