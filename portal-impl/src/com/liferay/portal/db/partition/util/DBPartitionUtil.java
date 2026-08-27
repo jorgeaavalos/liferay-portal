@@ -212,6 +212,9 @@ public class DBPartitionUtil {
 		catch (PortalException portalException) {
 			throw portalException;
 		}
+		catch (RuntimeException runtimeException) {
+			throw runtimeException;
+		}
 		catch (Exception exception) {
 			throw new PortalException(exception);
 		}
@@ -420,9 +423,7 @@ public class DBPartitionUtil {
 	public static void removeExportedPartition(long companyId)
 		throws PortalException {
 
-		if (PropsValues.DATABASE_PARTITION_ENABLED ||
-			(companyId == _defaultCompanyId)) {
-
+		if (companyId == _defaultCompanyId) {
 			return;
 		}
 
@@ -621,6 +622,25 @@ public class DBPartitionUtil {
 			}
 
 			throw new PortalException(exception);
+		}
+	}
+
+	private static void _checkExportedPartition(
+			Connection connection, String exportedPartitionName)
+		throws PortalException {
+
+		try {
+			if (_dbPartitionDB.existsPartition(
+					connection, exportedPartitionName)) {
+
+				throw new IllegalArgumentException(
+					StringBundler.concat(
+						"Database partition ", exportedPartitionName,
+						" already exists"));
+			}
+		}
+		catch (SQLException sqlException) {
+			throw new PortalException(sqlException);
 		}
 	}
 
@@ -987,19 +1007,7 @@ public class DBPartitionUtil {
 
 		String exportedPartitionName = getExportedPartitionName(companyId);
 
-		try {
-			if (_dbPartitionDB.existsPartition(
-					connection, exportedPartitionName)) {
-
-				throw new IllegalArgumentException(
-					StringBundler.concat(
-						"Database partition ", exportedPartitionName,
-						" already exists"));
-			}
-		}
-		catch (SQLException sqlException) {
-			throw new PortalException(sqlException);
-		}
+		_checkExportedPartition(connection, exportedPartitionName);
 
 		try {
 			try (PreparedStatement preparedStatement =
@@ -1082,19 +1090,7 @@ public class DBPartitionUtil {
 
 		String exportedPartitionName = getExportedPartitionName(companyId);
 
-		try {
-			if (_dbPartitionDB.existsPartition(
-					connection, exportedPartitionName)) {
-
-				throw new IllegalArgumentException(
-					StringBundler.concat(
-						"Database partition ", exportedPartitionName,
-						" already exists"));
-			}
-		}
-		catch (SQLException sqlException) {
-			throw new PortalException(sqlException);
-		}
+		_checkExportedPartition(connection, exportedPartitionName);
 
 		DBInspector dbInspector = new DBInspector(connection);
 
