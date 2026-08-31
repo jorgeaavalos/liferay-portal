@@ -137,6 +137,26 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testCredentialBuffer() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"CredentialBuffer.testjava"
+			).addExpectedMessage(
+				"Assign \"credential.toCharArray()\" to a local variable so " +
+					"that it can be cleared after use, see LPD-93280",
+				22
+			).addExpectedMessage(
+				"Assign \"credential.getBytes()\" to a local variable so " +
+					"that it can be cleared after use, see LPD-93280",
+				26
+			).addExpectedMessage(
+				"Assign \"credential.toCharArray()\" to a local variable so " +
+					"that it can be cleared after use, see LPD-93280",
+				33
+			));
+	}
+
+	@Test
 	public void testDeserializationSecurity() throws Exception {
 		test(
 			"DeserializationSecurity.testjava",

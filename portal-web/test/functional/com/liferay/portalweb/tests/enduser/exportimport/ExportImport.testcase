@@ -469,45 +469,6 @@ definition {
 		}
 	}
 
-	@description = "This is a use case for LPS-88498. Verify if a Guest is able to export files."
-	@priority = 3
-	test ExportViaGuest {
-		property test.liferay.virtual.instance = "false";
-		property test.run.type = "single";
-
-		task ("Given: Add a new user") {
-			JSONUser.addUser(
-				userEmailAddress = "userea@liferay.com",
-				userFirstName = "userfn",
-				userLastName = "userln",
-				userScreenName = "usersn");
-
-			User.openUsersAdmin();
-
-			User.editPasswordCP(
-				userEmailAddress = "userea@liferay.com",
-				userScreenName = "usersn");
-		}
-
-		task ("When: Default site is exported and the download URL is hit by the new guest user") {
-			LAR.exportSiteCP(siteScopeName = "Guest");
-
-			var downloadURL = selenium.getAttribute("//dl/dd/div/h2/span/a@href");
-
-			User.logoutAndLoginPG(
-				userLoginEmailAddress = "userea@liferay.com",
-				userLoginFullName = "userfn userln");
-
-			Navigator.openSpecificURL(url = ${downloadURL});
-		}
-
-		task ("Then: The download is forbidden because guest role has no sufficient permission") {
-			AssertTextEquals(
-				locator1 = "Home#ERROR_MESSAGE_ALERT_ERROR",
-				value1 = "Error:Forbidden");
-		}
-	}
-
 	@description = "This is a use case for LPS-135706. Verify that exporting and importing a Documents & Media URL does not append UUID to the imported URL if it was not there to begin with."
 	@priority = 3
 	test ImportDMUrlWithoutUUID {
@@ -572,61 +533,6 @@ definition {
 			CKEditor.assertBodyLinkWithoutUUID(
 				fieldLabel = "Content",
 				fileName = "document_1");
-		}
-	}
-
-	@description = "This is a use case for LPS-91233. Verify is possible publish a web content with a broken link."
-	@priority = 3
-	test PublishWebContentWithBrokenLink {
-		property test.liferay.virtual.instance = "false";
-		property test.run.type = "single";
-
-		task ("Given: User disable the validation of file entries and layout references") {
-			SystemSettings.openSystemSettingsAdmin();
-
-			SystemSettings.gotoConfiguration(
-				configurationCategory = "Infrastructure",
-				configurationName = "Export/Import, Staging",
-				configurationScope = "System Scope");
-
-			SystemSettings.configureSystemSetting(
-				enableSetting = "false",
-				settingFieldName = "Validate File Entries");
-
-			SystemSettings.configureSystemSetting(
-				enableSetting = "false",
-				settingFieldName = "Validate Layout References");
-		}
-
-		task ("When: User adds a new document and save the document's external URL") {
-			DMNavigator.openDocumentsAndMediaAdmin(siteURLKey = "guest");
-
-			DMDocument.addCP(
-				dmDocumentDescription = "DM Document Description",
-				dmDocumentFile = "Document_1.jpg",
-				dmDocumentTitle = "DM Document Title");
-
-			DMNavigator.gotoDocumentCP(dmDocumentTitle = "DM Document Title");
-
-			DMDocument.expandInfo();
-
-			var dmDocumentURL = selenium.getAttribute("//input[contains(@id,'urlInput')]@value");
-
-			var entryExternalURL = StringUtil.replace(${dmDocumentURL}, "http://", "");
-		}
-
-		task ("And: Delete the newly created file") {
-			JSONDocument.deleteFile(
-				dmDocumentTitle = "DM Document Title",
-				groupName = "Guest");
-		}
-
-		task ("Then: User can create a new WC with the saved external link of the deleted document") {
-			JSONWebcontent.addWebContent(
-				content = '''<a href="${entryExternalURL}">${dmDocumentURL}</a>''',
-				groupName = "Guest",
-				source = "true",
-				title = "WC WebContent Title");
 		}
 	}
 

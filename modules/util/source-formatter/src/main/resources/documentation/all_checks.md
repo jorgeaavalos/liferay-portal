@@ -64,6 +64,7 @@ ComponentAnnotationCheck | [Bug Prevention](bug_prevention_checks.md#bug-prevent
 [ComponentExposureCheck](check/component_exposure_check.md#componentexposurecheck) | [Bug Prevention](bug_prevention_checks.md#bug-prevention-checks) | .java | Avoid exposing static component. |
 ConcatCheck | [Performance](performance_checks.md#performance-checks) | .java, .jsp, .jspf, .jspx, .tag, .tpl, or .vm | Checks for correct use of `StringBundler.concat`. |
 ConfigDefinitionKeysCheck | [Styling](styling_checks.md#styling-checks) | .cfg or .config | Sorts definition keys in `.config` files. |
+ConfigStylingCheck | [Styling](styling_checks.md#styling-checks) | .cfg or .config | Applies rules to enforce consistency in code style. |
 ConfigWhitespaceCheck | [Styling](styling_checks.md#styling-checks) | .cfg or .config | Finds missing and unnecessary whitespace. |
 ConfigurableCreateConfigurableCallCheck | [Bug Prevention](bug_prevention_checks.md#bug-prevention-checks) | .java | Checks illegal call to `Configurable.createConfigurable`. |
 ConstantNameCheck | [Naming Conventions](naming_conventions_checks.md#naming-conventions-checks) | .java, .jsp, .jspf, .jspx, .tag, .tpl, or .vm | Checks that variable names of constants follow correct naming rules. |
@@ -74,6 +75,7 @@ ContractionsCheck | [Styling](styling_checks.md#styling-checks) | .java, .jsp, .
 [CopyrightCheck](check/copyright_check.md#copyrightcheck) | [Styling](styling_checks.md#styling-checks) | .java, .jsp, .jspf, .jspx, .tag, .tpl, or .vm | Validates `copyright` header. |
 [CreatingThreadsForDBAccessCheck](check/creating_threads_for_db_access_check.md#creatingthreadsfordbaccesscheck) | [Bug Prevention](bug_prevention_checks.md#bug-prevention-checks) | .java | Finds cases where `CompanyInheritableThreadLocalCallable` should be used when creating threads for DB access. |
 [CreationMenuBuilderCheck](check/builder_check.md#buildercheck) | [Miscellaneous](miscellaneous_checks.md#miscellaneous-checks) | .java | Checks that `CreationMenuBuilder` is used when possible. |
+CredentialBufferCheck | [Bug Prevention](bug_prevention_checks.md#bug-prevention-checks) | .java | Finds buffers that are derived from a `String` and passed straight into a credential API, leaving no reference to clear. |
 DTOEnumCreationCheck | [Bug Prevention](bug_prevention_checks.md#bug-prevention-checks) | .java | Checks the creation of DTO enum. |
 DatabaseMetaDataCheck | [Bug Prevention](bug_prevention_checks.md#bug-prevention-checks) | .java | Checks usages of `java.sql.DatabaseMetaData`. |
 DatabaseMetaDataSupportsBatchUpdatesCallCheck | [Bug Prevention](bug_prevention_checks.md#bug-prevention-checks) | .java | Checks illegal call to `DatabaseMetaData.supportsBatchUpdates`. |

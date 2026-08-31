@@ -899,19 +899,20 @@ cmsTest.describe('Manage object entries schedule properties', () => {
 
 			await page.keyboard.press('Escape');
 
+			const today =
+				await viewObjectEntriesPage.publishDateInput.inputValue();
+
 			await viewObjectEntriesPage.schedulePublicationButton.click();
 
 			await waitForAlert(page);
-
-			const date = new Date();
-
-			const today = getObjectEntryUIDateTimeFormat(date);
 
 			await viewObjectEntriesPage.choosePublicationOption('schedule');
 
 			await expect(viewObjectEntriesPage.publishDateInput).toHaveValue(
 				today
 			);
+
+			const date = new Date(today);
 
 			date.setDate(date.getDate() + 1);
 
@@ -1017,17 +1018,18 @@ cmsTest.describe('Manage object entries schedule properties', () => {
 
 			await page.keyboard.press('Escape');
 
+			const today =
+				await viewObjectEntriesPage.reviewDateInput.inputValue();
+
 			await viewObjectEntriesPage.choosePublicationOption('publish');
 
 			await waitForAlert(page);
 
-			const date = new Date();
-
-			const today = getObjectEntryUIDateTimeFormat(date);
-
 			await expect(viewObjectEntriesPage.reviewDateInput).toHaveValue(
 				today
 			);
+
+			const date = new Date(today);
 
 			date.setDate(date.getDate() + 1);
 
@@ -1583,7 +1585,7 @@ test.describe('Manage object entries through Friendly URL', () => {
 
 			await editObjectDetailsPage.saveObjectDefinition();
 
-			await page.waitForLoadState('networkidle');
+			await waitForAlert(page, 'The object was saved successfully');
 
 			await page.goto(
 				`/web${site.friendlyUrlPath}/${newObjectFriendlyURLSeparator}/` +
@@ -4663,6 +4665,66 @@ test.describe('Manage object entries through View Object Entries', () => {
 		await expect(autoIncrementInput).toHaveValue('HAT-1');
 	});
 
+	test(
+		'can verify conditional read only field keeps its value in object entries',
+		{tag: ['@LPD-103669']},
+		async ({apiHelpers, page, viewObjectEntriesPage}) => {
+			const objectFields = generateObjectFields({
+				objectFieldBusinessTypes: [
+					{businessType: 'Integer', name: 'age'},
+					{
+						businessType: 'Text',
+						name: 'employeeName',
+						readOnly: 'conditional',
+						readOnlyConditionExpression: 'age == 20',
+					},
+				],
+			});
+
+			const objectDefinition =
+				await apiHelpers.objectAdmin.postRandomObjectDefinition({
+					objectFields,
+					status: {code: 0},
+				});
+
+			apiHelpers.data.push({
+				id: objectDefinition.id,
+				type: 'objectDefinition',
+			});
+
+			await apiHelpers.objectEntry.postObjectEntry(
+				{age: 20, employeeName: 'John'},
+				'c/' + objectDefinition.name.toLowerCase() + 's'
+			);
+
+			await viewObjectEntriesPage.goto(objectDefinition.className);
+
+			await viewObjectEntriesPage.frontendDatasetItems.first().click();
+
+			const ageInput = page.getByLabel(objectFields[0].label['en_US']);
+
+			const employeeNameInput = page.getByLabel(
+				objectFields[1].label['en_US']
+			);
+
+			await expect(employeeNameInput).toBeDisabled();
+
+			await expect(employeeNameInput).toHaveValue('John');
+
+			await ageInput.fill('21');
+
+			await viewObjectEntriesPage.saveObjectEntryButton.click();
+
+			await waitForAlert(page);
+
+			await viewObjectEntriesPage.backButton.click();
+
+			await viewObjectEntriesPage.frontendDatasetItems.first().click();
+
+			await expect(employeeNameInput).toHaveValue('John');
+		}
+	);
+
 	test('can view all entries related to an object in the relationship field using autocomplete', async ({
 		apiHelpers,
 		page,
@@ -6710,7 +6772,7 @@ test.describe('Manage object entries through Workflow', () => {
 			applicationName
 		);
 
-		await globalMenuPage.goToApplications('Metrics');
+		await globalMenuPage.goToApplications('Workflow Metrics');
 
 		await metricsPage.chooseProcess(assetType);
 

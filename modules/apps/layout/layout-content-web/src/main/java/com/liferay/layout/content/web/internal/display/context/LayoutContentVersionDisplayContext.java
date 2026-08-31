@@ -62,6 +62,12 @@ public class LayoutContentVersionDisplayContext {
 				"defaultUserImageSrc",
 				_themeDisplay.getPathImage() + "/user_portrait?img_id=0"
 			).put(
+				"getPagePreviewURL",
+				_themeDisplay.getPathMain() + "/portal/get_page_preview"
+			).put(
+				"getPageVersionPreviewURL",
+				_themeDisplay.getPathMain() + "/portal/get_page_version_preview"
+			).put(
 				"layout",
 				() -> {
 					Layout layout = _themeDisplay.getLayout();
@@ -114,8 +120,13 @@ public class LayoutContentVersionDisplayContext {
 				return HashMapBuilder.<String, Object>put(
 					"active", active
 				).put(
+					"priority", segmentsExperience.getPriority()
+				).put(
 					"segmentsExperienceERC",
 					segmentsExperience.getExternalReferenceCode()
+				).put(
+					"segmentsExperienceId",
+					String.valueOf(segmentsExperience.getSegmentsExperienceId())
 				).put(
 					"segmentsExperienceName",
 					segmentsExperience.getName(_themeDisplay.getLocale())
@@ -137,7 +148,8 @@ public class LayoutContentVersionDisplayContext {
 		return StringBundler.concat(
 			"/o/headless-admin-site/v1.0/sites/",
 			group.getExternalReferenceCode(), "/site-pages/",
-			layout.getExternalReferenceCode(), "/page-specification-versions");
+			layout.getExternalReferenceCode(), "/page-specification-versions",
+			"?nestedFields=pageSpecificationVersionPageExperiences");
 	}
 
 	private final HttpServletRequest _httpServletRequest;
