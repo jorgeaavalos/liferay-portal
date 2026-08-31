@@ -330,7 +330,8 @@ public class DBPartitionUtilTest extends BaseDBPartitionTestCase {
 				for (long companyId : COMPANY_IDS) {
 					db.runSQL(
 						dbPartitionDB.getDropPartitionSQL(
-							getExportedPartitionName(companyId)));
+							DBPartitionUtil.getExportedPartitionName(
+								companyId)));
 				}
 			}
 
@@ -358,7 +359,8 @@ public class DBPartitionUtilTest extends BaseDBPartitionTestCase {
 
 			exportCompany(companyId);
 
-			String exportedPartitionName = getExportedPartitionName(companyId);
+			String exportedPartitionName =
+				DBPartitionUtil.getExportedPartitionName(companyId);
 
 			Assert.assertEquals(
 				tableNames.size(), _getTablesCount(exportedPartitionName));
@@ -407,7 +409,7 @@ public class DBPartitionUtilTest extends BaseDBPartitionTestCase {
 
 				db.runSQL(
 					dbPartitionDB.getDropPartitionSQL(
-						getExportedPartitionName(companyId)));
+						DBPartitionUtil.getExportedPartitionName(companyId)));
 			}
 		}
 	}
@@ -445,8 +447,8 @@ public class DBPartitionUtilTest extends BaseDBPartitionTestCase {
 
 			for (long companyId : COMPANY_IDS) {
 				List<String> companyViewNames = viewNames.get(companyId);
-				String exportedPartitionName = getExportedPartitionName(
-					companyId);
+				String exportedPartitionName =
+					DBPartitionUtil.getExportedPartitionName(companyId);
 
 				Assert.assertEquals(
 					tablesCount.get(companyId) + companyViewNames.size(),
@@ -501,7 +503,8 @@ public class DBPartitionUtilTest extends BaseDBPartitionTestCase {
 				for (long companyId : COMPANY_IDS) {
 					db.runSQL(
 						dbPartitionDB.getDropPartitionSQL(
-							getExportedPartitionName(companyId)));
+							DBPartitionUtil.getExportedPartitionName(
+								companyId)));
 				}
 			}
 
