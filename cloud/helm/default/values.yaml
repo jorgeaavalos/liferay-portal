@@ -61,7 +61,7 @@ customInitContainers:
                         -   name: LIFERAY_SYNC_DEST
                             value: /opt/liferay/deploy/license.xml
                         -   name: LIFERAY_SYNC_INTERVAL
-                            value: {{ .license.syncInterval | quote }}
+                            value: {{ .licensing.syncInterval | quote }}
                         -   name: LIFERAY_SYNC_MARKER
                             value: /opt/liferay/.liferay-license-sync.sha
                         -   name: LIFERAY_SYNC_SOURCE
@@ -362,16 +362,20 @@ image:
     tag: 2026.q1.8-lts
 initContainers: []
 license:
-    activationCodeSecretKey: activationCode
-    activationCodeSecretName: ""
     enabled: false
     initScriptsVolumeName: liferay-init-scripts-default
     secretName: ""
-    syncInterval: 60
 licensing:
+    activationCodeSecretKey: activationCode
+    activationCodeSecretName: ""
     enabled: false
     offline: false
     offlineActivationBundle: ""
+    onlineActivationWorkflow:
+        clusterRoleName: online-activation-cluster-role
+        enabled: true
+        serviceAccountName: online-activation-service-account
+    syncInterval: 60
 livenessProbe:
     failureThreshold: 3
     httpGet:
