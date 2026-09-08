@@ -5384,6 +5384,42 @@ public class ObjectEntryLocalServiceTest {
 	}
 
 	@Test
+	@TestInfo("LPD-103992")
+	public void testGetIndexedValues() throws Exception {
+		String objectFieldName = "a" + RandomTestUtil.randomString();
+
+		ObjectDefinition objectDefinition = _publishCustomObjectDefinition(
+			Collections.singletonList(
+				ObjectFieldUtil.createObjectField(
+					ObjectFieldConstants.BUSINESS_TYPE_TEXT,
+					ObjectFieldConstants.DB_TYPE_STRING, true, false, null,
+					RandomTestUtil.randomString(), objectFieldName, false)));
+
+		String value = RandomTestUtil.randomString();
+
+		ObjectEntry objectEntry = _addObjectEntry(
+			0, objectDefinition.getObjectDefinitionId(),
+			HashMapBuilder.<String, Serializable>put(
+				objectFieldName, value
+			).build());
+
+		objectDefinition.setTitleObjectFieldId(0);
+
+		objectDefinition = _objectDefinitionLocalService.updateObjectDefinition(
+			objectDefinition);
+
+		objectEntry = _objectEntryLocalService.getObjectEntry(
+			objectEntry.getObjectEntryId());
+
+		Map<String, Serializable> indexedValues =
+			_objectEntryLocalService.getIndexedValues(objectEntry);
+
+		Assert.assertEquals(value, indexedValues.get(objectFieldName));
+
+		_objectDefinitionLocalService.deleteObjectDefinition(objectDefinition);
+	}
+
+	@Test
 	public void testGetObjectEntries() throws Exception {
 		List<ObjectEntry> objectEntries =
 			_objectEntryLocalService.getObjectEntries(
@@ -5485,6 +5521,57 @@ public class ObjectEntryLocalServiceTest {
 			QueryUtil.ALL_POS, QueryUtil.ALL_POS);
 
 		Assert.assertEquals(objectEntries.toString(), 0, objectEntries.size());
+	}
+
+	@Test
+	public void testGetObjectEntriesByStatus() throws Exception {
+		ObjectEntry objectEntry1 = _addObjectEntry(
+			HashMapBuilder.<String, Serializable>put(
+				"emailAddressRequired", "peter@liferay.com"
+			).put(
+				"firstName", "Peter"
+			).put(
+				"listTypeEntryKeyRequired", "listTypeEntryKey1"
+			).build());
+		ObjectEntry objectEntry2 = _addObjectEntry(
+			HashMapBuilder.<String, Serializable>put(
+				"emailAddressRequired", "james@liferay.com"
+			).put(
+				"firstName", "James"
+			).put(
+				"listTypeEntryKeyRequired", "listTypeEntryKey2"
+			).build());
+		ObjectEntry objectEntry3 = _addObjectEntry(
+			HashMapBuilder.<String, Serializable>put(
+				"emailAddressRequired", "john@liferay.com"
+			).put(
+				"firstName", "John"
+			).put(
+				"listTypeEntryKeyRequired", "listTypeEntryKey3"
+			).build());
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext();
+
+		_objectEntryLocalService.updateStatus(
+			TestPropsValues.getUserId(), objectEntry2.getObjectEntryId(),
+			WorkflowConstants.STATUS_DRAFT, serviceContext);
+
+		_objectEntryLocalService.moveObjectEntryToTrash(
+			TestPropsValues.getUserId(), objectEntry3, serviceContext);
+
+		_assertObjectEntries(
+			Arrays.asList(objectEntry1, objectEntry2),
+			WorkflowConstants.STATUS_ANY);
+		_assertObjectEntries(
+			Collections.singletonList(objectEntry1),
+			WorkflowConstants.STATUS_APPROVED);
+		_assertObjectEntries(
+			Collections.singletonList(objectEntry2),
+			WorkflowConstants.STATUS_DRAFT);
+		_assertObjectEntries(
+			Collections.singletonList(objectEntry3),
+			WorkflowConstants.STATUS_IN_TRASH);
 	}
 
 	@Test
@@ -9543,6 +9630,27 @@ public class ObjectEntryLocalServiceTest {
 		Assert.assertEquals(expectedStatus, objectAction.getStatus());
 	}
 
+	private void _assertObjectEntries(
+		List<ObjectEntry> expectedObjectEntries, int status) {
+
+		List<Long> expectedObjectEntryIds = ListUtil.sort(
+			TransformUtil.transform(
+				expectedObjectEntries, ObjectEntry::getObjectEntryId));
+
+		Assert.assertEquals(
+			expectedObjectEntryIds,
+			ListUtil.sort(
+				TransformUtil.transform(
+					_objectEntryLocalService.getObjectEntries(
+						0, _objectDefinition.getObjectDefinitionId(), status,
+						QueryUtil.ALL_POS, QueryUtil.ALL_POS),
+					ObjectEntry::getObjectEntryId)));
+		Assert.assertEquals(
+			expectedObjectEntryIds.size(),
+			_objectEntryLocalService.getObjectEntriesCount(
+				0, _objectDefinition.getObjectDefinitionId(), status));
+	}
+
 	private void _assertObjectEntryLocalizedValues(
 			Map<String, Serializable> expectedLocalizedValues,
 			ObjectEntry objectEntry, ObjectField objectField)
@@ -9869,6 +9977,14 @@ public class ObjectEntryLocalServiceTest {
 				null);
 
 		return serviceRegistration::unregister;
+	}
+
+	private ObjectEntry _rewindDisplayDate(ObjectEntry objectEntry) {
+		objectEntry.setDisplayDate(
+			new java.sql.Date(
+				System.currentTimeMillis() - TimeUnit.MINUTE.toMillis(1)));
+
+		return _objectEntryLocalService.updateObjectEntry(objectEntry);
 	}
 
 	private void _testAddObjectEntry(
@@ -10331,8 +10447,7 @@ public class ObjectEntryLocalServiceTest {
 			HashMapBuilder.<String, Serializable>put(
 				"displayDate",
 				new java.sql.Date(
-					System.currentTimeMillis() +
-						TimeUnit.MILLISECOND.toMillis(1000))
+					System.currentTimeMillis() + TimeUnit.HOUR.toMillis(1))
 			).putAll(
 				requiredValues
 			).build(),
@@ -10349,7 +10464,7 @@ public class ObjectEntryLocalServiceTest {
 		Assert.assertEquals(
 			WorkflowConstants.STATUS_SCHEDULED, objectEntry3.getStatus());
 
-		Thread.sleep(1000);
+		objectEntry3 = _rewindDisplayDate(objectEntry3);
 
 		jobExecutorUnsafeRunnable.run();
 
@@ -10406,8 +10521,7 @@ public class ObjectEntryLocalServiceTest {
 			HashMapBuilder.<String, Serializable>put(
 				"displayDate",
 				new java.sql.Date(
-					System.currentTimeMillis() +
-						TimeUnit.MILLISECOND.toMillis(1000))
+					System.currentTimeMillis() + TimeUnit.HOUR.toMillis(1))
 			).putAll(
 				requiredValues
 			).build(),
@@ -10424,7 +10538,7 @@ public class ObjectEntryLocalServiceTest {
 		Assert.assertEquals(
 			WorkflowConstants.STATUS_DENIED, objectEntry5.getStatus());
 
-		Thread.sleep(1000);
+		objectEntry5 = _rewindDisplayDate(objectEntry5);
 
 		jobExecutorUnsafeRunnable.run();
 

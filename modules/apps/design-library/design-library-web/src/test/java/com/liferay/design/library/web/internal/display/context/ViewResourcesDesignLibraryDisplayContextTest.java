@@ -6,11 +6,10 @@
 package com.liferay.design.library.web.internal.display.context;
 
 import com.liferay.depot.model.DepotEntry;
+import com.liferay.design.library.resource.type.DesignLibraryResourceCreationItem;
+import com.liferay.design.library.resource.type.DesignLibraryResourceTypeContributor;
+import com.liferay.design.library.resource.type.DesignLibraryResourceTypeContributorRegistry;
 import com.liferay.design.library.web.internal.constants.DesignLibraryWebKeys;
-import com.liferay.fragment.constants.FragmentActionKeys;
-import com.liferay.fragment.constants.FragmentPortletKeys;
-import com.liferay.fragment.model.FragmentCollection;
-import com.liferay.fragment.service.FragmentCollectionLocalService;
 import com.liferay.frontend.data.set.model.FDSActionDropdownItem;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.DropdownItem;
 import com.liferay.petra.string.StringBundler;
@@ -26,7 +25,6 @@ import com.liferay.portal.kernel.portlet.LiferayPortletURL;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
-import com.liferay.portal.kernel.security.permission.resource.PortletResourcePermission;
 import com.liferay.portal.kernel.service.permission.GroupPermissionUtil;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.TestInfo;
@@ -36,13 +34,12 @@ import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
-import com.liferay.style.book.constants.StyleBookActionKeys;
-import com.liferay.style.book.constants.StyleBookPortletKeys;
-import com.liferay.style.book.model.StyleBookEntry;
 
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -86,15 +83,11 @@ public class ViewResourcesDesignLibraryDisplayContextTest {
 
 	@Test
 	public void testGetAPIURL() throws Exception {
-		String url = _viewResourcesDesignLibraryDisplayContext.getAPIURL();
+		_setUpClassNameIds();
 
-		Assert.assertTrue(
-			url,
-			url.contains(
-				StringBundler.concat(
-					"entryClassNames=", FragmentCollection.class.getName(), ",",
-					StyleBookEntry.class.getName(), "&filter=groupIds/any(g:g ",
-					"eq ", _depotEntry.getGroupId(), ")")));
+		_testGetAPIURL();
+		_testGetAPIURLNarrowsByClassNameId();
+		_testGetAPIURLNarrowsByType();
 	}
 
 	@Test
@@ -196,105 +189,114 @@ public class ViewResourcesDesignLibraryDisplayContextTest {
 	public void testGetFDSActionDropdownItems() throws Exception {
 		_setUpPortletURLMocks();
 
+		_setUpRegistry(
+			_mockContributor(false, _CLASS_NAME_1, "fragment", null));
+
 		List<FDSActionDropdownItem> fdsActionDropdownItems =
 			_viewResourcesDesignLibraryDisplayContext.
 				getFDSActionDropdownItems();
 
-		_assertFDSActionDropdownItem(
-			FragmentCollection.class.getName(), "view", "link",
+		Assert.assertEquals(
+			fdsActionDropdownItems.toString(), 1,
+			fdsActionDropdownItems.size());
+
+		Map<String, Object> visibilityFilters = _getVisibilityFilters(
 			fdsActionDropdownItems.get(0));
-		_assertFDSActionDropdownItem(
-			FragmentCollection.class.getName(), "edit", "link",
-			fdsActionDropdownItems.get(1));
-		_assertFDSActionDropdownItem(
-			StyleBookEntry.class.getName(), "edit", "link",
-			fdsActionDropdownItems.get(2));
-		_assertFDSActionDropdownItem(
-			FragmentCollection.class.getName(), "delete", "async",
-			fdsActionDropdownItems.get(3));
-		_assertFDSActionDropdownItem(
-			StyleBookEntry.class.getName(), "delete", "async",
-			fdsActionDropdownItems.get(4));
 
 		Assert.assertEquals(
-			fdsActionDropdownItems.toString(), 5,
-			fdsActionDropdownItems.size());
+			_CLASS_NAME_1, visibilityFilters.get("entryClassName"));
+		Assert.assertFalse(
+			visibilityFilters.toString(),
+			visibilityFilters.containsKey("type"));
+	}
+
+	@Test
+	public void testGetFDSActionDropdownItemsStampsTheTypeDiscriminator()
+		throws Exception {
+
+		_setUpPortletURLMocks();
+
+		_setUpRegistry(_mockContributor(false, _CLASS_NAME_2, "master", "3"));
+
+		List<FDSActionDropdownItem> fdsActionDropdownItems =
+			_viewResourcesDesignLibraryDisplayContext.
+				getFDSActionDropdownItems();
+
+		Map<String, Object> visibilityFilters = _getVisibilityFilters(
+			fdsActionDropdownItems.get(0));
+
+		Assert.assertEquals(
+			_CLASS_NAME_2, visibilityFilters.get("entryClassName"));
+		Assert.assertEquals("3", visibilityFilters.get("type"));
 	}
 
 	@Test
 	public void testGetFDSAdditionalProps() throws Exception {
 		_setUpPortletURLMocks();
 
-		_assertFDSAdditionalProps(_depotEntry.getGroupId(), false);
-		_assertFDSAdditionalProps(_depotEntry.getGroupId(), true);
+		_setUpRegistry(
+			_mockContributor(false, _CLASS_NAME_3, "style-book", null));
+
+		List<Map<String, Object>> resourceTypes = _getResourceTypes();
+
+		Assert.assertEquals(resourceTypes.toString(), 1, resourceTypes.size());
+
+		Map<String, Object> resourceType = resourceTypes.get(0);
+
+		Assert.assertEquals("style-book-color", resourceType.get("color"));
+		Assert.assertNull(resourceType.get("creationItems"));
+		Assert.assertEquals("edit", resourceType.get("defaultActionId"));
+		Assert.assertEquals(_CLASS_NAME_3, resourceType.get("entryClassName"));
+		Assert.assertEquals("style-book", resourceType.get("key"));
+		Assert.assertEquals("style-book-label", resourceType.get("label"));
+		Assert.assertEquals("style-book-icon", resourceType.get("symbol"));
+		Assert.assertNull(resourceType.get("type"));
+	}
+
+	@Test
+	public void testGetFDSAdditionalPropsAddsCreationItemsWithAddPermission()
+		throws Exception {
+
+		_setUpPortletURLMocks();
+
+		_setUpRegistry(
+			_mockContributor(true, _CLASS_NAME_3, "style-book", null));
+
+		List<Map<String, Object>> resourceTypes = _getResourceTypes();
+
+		List<Map<String, Object>> creationItems =
+			(List<Map<String, Object>>)resourceTypes.get(
+				0
+			).get(
+				"creationItems"
+			);
+
+		Assert.assertEquals(creationItems.toString(), 1, creationItems.size());
+
+		Map<String, Object> creationItem = creationItems.get(0);
+
+		Assert.assertEquals("style-book-add", creationItem.get("id"));
+		Assert.assertEquals("style-book-add-label", creationItem.get("label"));
 	}
 
 	@Test
 	@TestInfo("LPD-96528")
 	public void testHasContentAccess() throws Exception {
-		_testHasContentAccess(false, false, false);
-		_testHasContentAccess(true, false, true);
-		_testHasContentAccess(true, true, false);
-		_testHasContentAccess(true, true, true);
+		_setUpRegistry();
+
+		Assert.assertFalse(
+			_viewResourcesDesignLibraryDisplayContext.hasContentAccess());
+
+		_setUpRegistry(
+			_mockContributor(false, _CLASS_NAME_3, "style-book", null));
+
+		Assert.assertTrue(
+			_viewResourcesDesignLibraryDisplayContext.hasContentAccess());
 	}
 
-	private void _assertFDSActionDropdownItem(
-		String expectedEntryClassName, String expectedId, String expectedTarget,
-		FDSActionDropdownItem fdsActionDropdownItem) {
-
-		Map<String, Object> data =
-			(Map<String, Object>)fdsActionDropdownItem.get("data");
-
-		Map<String, Object> visibilityFilters = (Map<String, Object>)data.get(
-			"visibilityFilters");
-
-		Assert.assertEquals(
-			expectedEntryClassName, visibilityFilters.get("entryClassName"));
-
-		Assert.assertEquals(expectedId, data.get("id"));
-		Assert.assertEquals(
-			expectedTarget, fdsActionDropdownItem.get("target"));
-	}
-
-	private void _assertFDSAdditionalProps(
-			long groupId, boolean manageFragmentEntriesPermission)
-		throws Exception {
-
-		Mockito.when(
-			_fragmentPortletResourcePermission.contains(
-				_permissionChecker, groupId,
-				FragmentActionKeys.MANAGE_FRAGMENT_ENTRIES)
-		).thenReturn(
-			manageFragmentEntriesPermission
-		);
-
-		Map<String, Object> fdsAdditionalProps =
-			_viewResourcesDesignLibraryDisplayContext.getFDSAdditionalProps();
-
-		Assert.assertNull(fdsAdditionalProps.get("addStyleBookEntryURL"));
-		Assert.assertFalse((Boolean)fdsAdditionalProps.get("canAddStyleBook"));
-		Assert.assertNull(
-			fdsAdditionalProps.get("frontendTokenDefinitionProviders"));
-		Assert.assertNull(fdsAdditionalProps.get("styleBookNamespace"));
-
-		Assert.assertEquals(
-			manageFragmentEntriesPermission,
-			fdsAdditionalProps.get("canManageFragments"));
-
-		if (manageFragmentEntriesPermission) {
-			Assert.assertNotNull(
-				fdsAdditionalProps.get("addFragmentCollectionURL"));
-			Assert.assertNotNull(fdsAdditionalProps.get("addFragmentEntryURL"));
-			Assert.assertNotNull(fdsAdditionalProps.get("fragmentCollections"));
-			Assert.assertNotNull(fdsAdditionalProps.get("fragmentNamespace"));
-		}
-		else {
-			Assert.assertNull(
-				fdsAdditionalProps.get("addFragmentCollectionURL"));
-			Assert.assertNull(fdsAdditionalProps.get("addFragmentEntryURL"));
-			Assert.assertNull(fdsAdditionalProps.get("fragmentCollections"));
-			Assert.assertNull(fdsAdditionalProps.get("fragmentNamespace"));
-		}
+	private FDSActionDropdownItem _createFDSActionDropdownItem(String key) {
+		return new FDSActionDropdownItem(
+			"/" + key, null, "edit", key + "-edit", "get", null, "link");
 	}
 
 	private List<String> _getBreadcrumbPropsActionItemsLabels(
@@ -431,6 +433,126 @@ public class ViewResourcesDesignLibraryDisplayContextTest {
 		}
 	}
 
+	private List<Map<String, Object>> _getResourceTypes() throws Exception {
+		Map<String, Object> fdsAdditionalProps =
+			_viewResourcesDesignLibraryDisplayContext.getFDSAdditionalProps();
+
+		return (List<Map<String, Object>>)fdsAdditionalProps.get(
+			"resourceTypes");
+	}
+
+	private Map<String, Object> _getVisibilityFilters(
+		FDSActionDropdownItem fdsActionDropdownItem) {
+
+		Map<String, Object> data =
+			(Map<String, Object>)fdsActionDropdownItem.get("data");
+
+		return (Map<String, Object>)data.get("visibilityFilters");
+	}
+
+	private DesignLibraryResourceTypeContributor _mockContributor(
+			boolean addPermission, String entryClassName, String key,
+			String type)
+		throws Exception {
+
+		DesignLibraryResourceTypeContributor
+			designLibraryResourceTypeContributor = Mockito.mock(
+				DesignLibraryResourceTypeContributor.class);
+
+		Mockito.when(
+			designLibraryResourceTypeContributor.getColor()
+		).thenReturn(
+			key + "-color"
+		);
+
+		Mockito.when(
+			designLibraryResourceTypeContributor.getCreationItems(
+				Mockito.any(), Mockito.any(), Mockito.any())
+		).thenReturn(
+			Collections.singletonList(
+				new DesignLibraryResourceCreationItem(
+					key + "-add", key + "-add-label",
+					"{Modal} from " + key + "-web",
+					Collections.singletonMap("backURL", "backURL")))
+		);
+
+		Mockito.when(
+			designLibraryResourceTypeContributor.getDefaultActionId()
+		).thenReturn(
+			"edit"
+		);
+
+		Mockito.when(
+			designLibraryResourceTypeContributor.getEntryClassName()
+		).thenReturn(
+			entryClassName
+		);
+
+		FDSActionDropdownItem fdsActionDropdownItem =
+			_createFDSActionDropdownItem(key);
+
+		Mockito.when(
+			designLibraryResourceTypeContributor.getFDSActionDropdownItems(
+				Mockito.any(), Mockito.any(), Mockito.any())
+		).thenReturn(
+			Collections.singletonList(fdsActionDropdownItem)
+		);
+
+		Mockito.when(
+			designLibraryResourceTypeContributor.getIcon()
+		).thenReturn(
+			key + "-icon"
+		);
+
+		Mockito.when(
+			designLibraryResourceTypeContributor.getKey()
+		).thenReturn(
+			key
+		);
+
+		Mockito.when(
+			designLibraryResourceTypeContributor.getLabel(
+				Mockito.any(Locale.class))
+		).thenReturn(
+			key + "-label"
+		);
+
+		Mockito.when(
+			designLibraryResourceTypeContributor.getType()
+		).thenReturn(
+			type
+		);
+
+		Mockito.when(
+			designLibraryResourceTypeContributor.hasAddPermission(
+				Mockito.any(), Mockito.any())
+		).thenReturn(
+			addPermission
+		);
+
+		return designLibraryResourceTypeContributor;
+	}
+
+	private void _setUpClassNameIds() {
+		_portalUtilMockedStatic.when(
+			() -> PortalUtil.getClassNameId(_CLASS_NAME_1)
+		).thenReturn(
+			_CLASS_NAME_ID_1
+		);
+
+		_portalUtilMockedStatic.when(
+			() -> PortalUtil.getClassNameId(_CLASS_NAME_2)
+		).thenReturn(
+			_CLASS_NAME_ID_2
+		);
+
+		_portalUtilMockedStatic.when(
+			() -> PortalUtil.getClassNameId(_CLASS_NAME_3)
+		).thenReturn(
+			_CLASS_NAME_ID_3
+		);
+	}
+
 	private void _setUpDepotEntry() throws Exception {
 		Mockito.when(
 			_depotEntry.getGroup()
@@ -483,62 +605,46 @@ public class ViewResourcesDesignLibraryDisplayContextTest {
 		).thenReturn(
 			_liferayPortletURL
 		);
+	}
 
-		_portalUtilMockedStatic.when(
-			() -> PortalUtil.getPortletNamespace(FragmentPortletKeys.FRAGMENT)
+	private void _setUpRegistry(
+		DesignLibraryResourceTypeContributor...
+			designLibraryResourceTypeContributors) {
+
+		List<DesignLibraryResourceTypeContributor> contributors = Arrays.asList(
+			designLibraryResourceTypeContributors);
+
+		DesignLibraryResourceTypeContributorRegistry
+			designLibraryResourceTypeContributorRegistry = Mockito.mock(
+				DesignLibraryResourceTypeContributorRegistry.class);
+
+		Mockito.when(
+			designLibraryResourceTypeContributorRegistry.
+				getDesignLibraryResourceTypeContributors(
+					Mockito.any(PermissionChecker.class),
+					Mockito.any(DepotEntry.class))
 		).thenReturn(
-			RandomTestUtil.randomString()
+			contributors
 		);
 
-		_portalUtilMockedStatic.when(
-			() -> PortalUtil.getPortletNamespace(
-				StyleBookPortletKeys.STYLE_BOOK)
-		).thenReturn(
-			RandomTestUtil.randomString()
-		);
+		ReflectionTestUtil.setFieldValue(
+			ViewResourcesDesignLibraryDisplayContext.class,
+			"_designLibraryResourceTypeContributorRegistrySnapshot",
+			new Snapshot<DesignLibraryResourceTypeContributorRegistry>(
+				ViewResourcesDesignLibraryDisplayContext.class,
+				DesignLibraryResourceTypeContributorRegistry.class) {
+
+				@Override
+				public DesignLibraryResourceTypeContributorRegistry get() {
+					return designLibraryResourceTypeContributorRegistry;
+				}
+
+			});
+
+		_setUpViewResourcesDesignLibraryDisplayContext();
 	}
 
 	private void _setUpViewResourcesDesignLibraryDisplayContext() {
-		ReflectionTestUtil.setFieldValue(
-			ViewResourcesDesignLibraryDisplayContext.class,
-			"_fragmentCollectionLocalServiceSnapshot",
-			new Snapshot<FragmentCollectionLocalService>(
-				ViewResourcesDesignLibraryDisplayContext.class,
-				FragmentCollectionLocalService.class) {
-
-				@Override
-				public FragmentCollectionLocalService get() {
-					return null;
-				}
-
-			});
-		ReflectionTestUtil.setFieldValue(
-			ViewResourcesDesignLibraryDisplayContext.class,
-			"_fragmentPortletResourcePermissionSnapshot",
-			new Snapshot<PortletResourcePermission>(
-				ViewResourcesDesignLibraryDisplayContext.class,
-				PortletResourcePermission.class) {
-
-				@Override
-				public PortletResourcePermission get() {
-					return _fragmentPortletResourcePermission;
-				}
-
-			});
-		ReflectionTestUtil.setFieldValue(
-			ViewResourcesDesignLibraryDisplayContext.class,
-			"_styleBookPortletResourcePermissionSnapshot",
-			new Snapshot<PortletResourcePermission>(
-				ViewResourcesDesignLibraryDisplayContext.class,
-				PortletResourcePermission.class) {
-
-				@Override
-				public PortletResourcePermission get() {
-					return _styleBookPortletResourcePermission;
-				}
-
-			});
-
 		Mockito.when(
 			_themeDisplay.getPermissionChecker()
 		).thenReturn(
@@ -561,37 +667,74 @@ public class ViewResourcesDesignLibraryDisplayContextTest {
 				_mockHttpServletRequest, _liferayPortletResponse);
 	}
 
-	private void _testHasContentAccess(
-			boolean expected, boolean manageFragmentEntriesPermission,
-			boolean manageStyleBookEntriesPermission)
-		throws Exception {
+	private void _testGetAPIURL() throws Exception {
+		_setUpRegistry(
+			_mockContributor(false, _CLASS_NAME_1, "fragment", null),
+			_mockContributor(false, _CLASS_NAME_3, "style-book", null));
 
-		Mockito.when(
-			_fragmentPortletResourcePermission.contains(
-				_permissionChecker, _depotEntry.getGroupId(),
-				FragmentActionKeys.MANAGE_FRAGMENT_ENTRIES)
-		).thenReturn(
-			manageFragmentEntriesPermission
-		);
+		String url = _viewResourcesDesignLibraryDisplayContext.getAPIURL();
 
-		Mockito.when(
-			_styleBookPortletResourcePermission.contains(
-				_permissionChecker, _depotEntry.getGroupId(),
-				StyleBookActionKeys.MANAGE_STYLE_BOOK_ENTRIES)
-		).thenReturn(
-			manageStyleBookEntriesPermission
-		);
-
-		Assert.assertEquals(
-			expected,
-			_viewResourcesDesignLibraryDisplayContext.hasContentAccess());
+		Assert.assertTrue(
+			url,
+			url.contains(
+				StringBundler.concat(
+					"entryClassNames=", _CLASS_NAME_1, ",", _CLASS_NAME_3)));
+		Assert.assertTrue(
+			url,
+			url.contains(
+				"filter=groupIds/any(g:g eq " + _depotEntry.getGroupId() +
+					")"));
 	}
+
+	private void _testGetAPIURLNarrowsByClassNameId() throws Exception {
+		_setUpRegistry(
+			_mockContributor(false, _CLASS_NAME_1, "fragment", null),
+			_mockContributor(false, _CLASS_NAME_3, "style-book", null));
+
+		String url = _viewResourcesDesignLibraryDisplayContext.getAPIURL();
+
+		Assert.assertTrue(
+			url,
+			url.contains(
+				StringBundler.concat(
+					"(classNameId eq ", _CLASS_NAME_ID_1, " or classNameId eq ",
+					_CLASS_NAME_ID_3, ")")));
+	}
+
+	private void _testGetAPIURLNarrowsByType() throws Exception {
+		_setUpRegistry(
+			_mockContributor(false, _CLASS_NAME_2, "master", "3"),
+			_mockContributor(false, _CLASS_NAME_2, "display-page", "1"));
+
+		String url = _viewResourcesDesignLibraryDisplayContext.getAPIURL();
+
+		Assert.assertTrue(
+			url,
+			url.contains(
+				StringBundler.concat(
+					"((classNameId eq ", _CLASS_NAME_ID_2,
+					" and type eq '3') or (classNameId eq ", _CLASS_NAME_ID_2,
+					" and type eq '1'))")));
+	}
+
+	private static final String _CLASS_NAME_1 =
+		"com.liferay.fragment.model.FragmentCollection";
+
+	private static final String _CLASS_NAME_2 =
+		"com.liferay.layout.page.template.model.LayoutPageTemplateEntry";
+
+	private static final String _CLASS_NAME_3 =
+		"com.liferay.style.book.model.StyleBookEntry";
+
+	private static final long _CLASS_NAME_ID_1 = 101;
+
+	private static final long _CLASS_NAME_ID_2 = 102;
+
+	private static final long _CLASS_NAME_ID_3 = 103;
 
 	private static final long _DEPOT_ENTRY_ID = 12345;
 
 	private final DepotEntry _depotEntry = Mockito.mock(DepotEntry.class);
-	private final PortletResourcePermission _fragmentPortletResourcePermission =
-		Mockito.mock(PortletResourcePermission.class);
 	private final Group _group = Mockito.mock(Group.class);
 	private final MockedStatic<LanguageUtil> _languageUtilMockedStatic =
 		Mockito.mockStatic(LanguageUtil.class);
@@ -605,9 +748,6 @@ public class ViewResourcesDesignLibraryDisplayContextTest {
 		PermissionChecker.class);
 	private final MockedStatic<PortalUtil> _portalUtilMockedStatic =
 		Mockito.mockStatic(PortalUtil.class);
-	private final PortletResourcePermission
-		_styleBookPortletResourcePermission = Mockito.mock(
-			PortletResourcePermission.class);
 	private final ThemeDisplay _themeDisplay = Mockito.mock(ThemeDisplay.class);
 	private ViewResourcesDesignLibraryDisplayContext
 		_viewResourcesDesignLibraryDisplayContext;

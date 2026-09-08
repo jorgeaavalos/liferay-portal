@@ -4,6 +4,8 @@ import {SessionEntityTypes} from 'shared/util/constants';
 export interface AccountUserSessionEvent {
 	applicationId: string;
 	assetTitle: string;
+	campaignId: string | null;
+	campaignName: string | null;
 	canonicalUrl: string;
 	createDate: string;
 	eventDate: string;
@@ -96,6 +98,8 @@ export default gql`
 					events {
 						applicationId
 						assetTitle
+						campaignId
+						campaignName
 						canonicalUrl
 						createDate
 						eventDate

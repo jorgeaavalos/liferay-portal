@@ -501,10 +501,12 @@ public class CPDefinitionOptionValueRelLocalServiceImpl
 						CPInstanceTable.INSTANCE.status.eq(
 							WorkflowConstants.STATUS_APPROVED)
 					).and(
-						Predicate.or(
-							CPInstanceTable.INSTANCE.expirationDate.isNull(),
-							CPInstanceTable.INSTANCE.expirationDate.gt(
-								new Date()))
+						Predicate.withParentheses(
+							Predicate.or(
+								CPInstanceTable.INSTANCE.expirationDate.
+									isNull(),
+								CPInstanceTable.INSTANCE.expirationDate.gt(
+									new Date())))
 					)
 			).orderBy(
 				CPDefinitionOptionValueRelTable.INSTANCE.priority.ascending(),
@@ -897,6 +899,22 @@ public class CPDefinitionOptionValueRelLocalServiceImpl
 
 		return _updateCPDefinitionOptionValueRelPreselected(
 			cpDefinitionOptionValueRel, preselected);
+	}
+
+	@Override
+	public CPDefinitionOptionValueRel updateExternalReferenceCode(
+			long cpDefinitionOptionValueRelId, String externalReferenceCode)
+		throws PortalException {
+
+		CPDefinitionOptionValueRel cpDefinitionOptionValueRel =
+			cpDefinitionOptionValueRelPersistence.findByPrimaryKey(
+				cpDefinitionOptionValueRelId);
+
+		cpDefinitionOptionValueRel.setExternalReferenceCode(
+			externalReferenceCode);
+
+		return cpDefinitionOptionValueRelPersistence.update(
+			cpDefinitionOptionValueRel);
 	}
 
 	private void _addCPDefinitionOptionValueRel(

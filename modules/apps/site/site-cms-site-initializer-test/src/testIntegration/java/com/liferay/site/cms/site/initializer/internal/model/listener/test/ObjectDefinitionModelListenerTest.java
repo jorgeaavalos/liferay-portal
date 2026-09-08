@@ -123,12 +123,21 @@ public class ObjectDefinitionModelListenerTest {
 		long classNameId = _classNameLocalService.getClassNameId(
 			_objectDefinition.getClassName());
 
-		String layoutPageTemplateEntryKey =
+		String compareLayoutPageTemplateEntryKey =
+			"LFR_CMS_COMPARE_" + classNameId;
+
+		DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+			_group.getGroupId(), classNameId, null, false,
+			compareLayoutPageTemplateEntryKey,
+			WorkflowConstants.STATUS_APPROVED);
+
+		String translationLayoutPageTemplateEntryKey =
 			"LFR_CMS_TRANSLATION_" + classNameId;
 
 		DisplayPageTemplateTestUtil.addDisplayPageTemplate(
 			_group.getGroupId(), classNameId, null, false,
-			layoutPageTemplateEntryKey, WorkflowConstants.STATUS_APPROVED);
+			translationLayoutPageTemplateEntryKey,
+			WorkflowConstants.STATUS_APPROVED);
 
 		DisplayPageTemplateTestUtil.addDisplayPageTemplate(
 			_group.getGroupId(), classNameId, null, true,
@@ -144,7 +153,13 @@ public class ObjectDefinitionModelListenerTest {
 
 		layoutPageTemplateEntry =
 			_layoutPageTemplateEntryLocalService.fetchLayoutPageTemplateEntry(
-				_group.getGroupId(), layoutPageTemplateEntryKey);
+				_group.getGroupId(), compareLayoutPageTemplateEntryKey);
+
+		Assert.assertNull(layoutPageTemplateEntry);
+
+		layoutPageTemplateEntry =
+			_layoutPageTemplateEntryLocalService.fetchLayoutPageTemplateEntry(
+				_group.getGroupId(), translationLayoutPageTemplateEntryKey);
 
 		Assert.assertNull(layoutPageTemplateEntry);
 	}

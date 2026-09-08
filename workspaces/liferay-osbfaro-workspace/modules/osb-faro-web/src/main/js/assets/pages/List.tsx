@@ -330,7 +330,7 @@ const List = () => {
 					label: ASSET_OBJECT_TYPE_LANG_MAP[value],
 					value,
 				})),
-				label: Liferay.Language.get('object-type'),
+				label: Liferay.Language.get('asset-structure-type'),
 				multiple: false,
 				...(objectType && {
 					preloadedData: {
@@ -363,6 +363,17 @@ const List = () => {
 				itemKey: 'id',
 				itemLabel: 'name',
 				label: Liferay.Language.get('categories'),
+				multiple: true,
+				type: 'selection',
+			},
+			{
+				apiURL: `/o/faro/contacts/${groupId}/asset-summary-cmp-projects?channelId=${channelId}&${rangeSelectorParams}`,
+				autocompleteEnabled: true,
+				entityFieldType: 'string',
+				id: 'cmpProjects/id',
+				itemKey: 'id',
+				itemLabel: 'name',
+				label: Liferay.Language.get('cmp-projects'),
 				multiple: true,
 				type: 'selection',
 			},
@@ -411,17 +422,8 @@ const List = () => {
 
 			<BasePage.SubHeader fluid>
 				<div className="d-flex justify-content-end w-100">
-					<div className="mr-1">
-						<DownloadStaticCSVReport
-							disabled={false}
-							getFDSQuery={() => fdsQueryRef.current}
-							rangeSelectors={rangeSelectors}
-							type={CSVType.Asset}
-							typeLang={Liferay.Language.get('assets')}
-						/>
-					</div>
-
 					<DropdownRangeKey
+						bordered
 						legacy={false}
 						onRangeSelectorChange={(rangeSelectors) => {
 							history.push(
@@ -441,6 +443,17 @@ const List = () => {
 							setRangeSelectors(rangeSelectors);
 						}}
 						rangeSelectors={rangeSelectors}
+					/>
+
+					<span className="align-self-stretch border-left mx-3" />
+
+					<DownloadStaticCSVReport
+						bordered
+						disabled={false}
+						getFDSQuery={() => fdsQueryRef.current}
+						rangeSelectors={rangeSelectors}
+						type={CSVType.Asset}
+						typeLang={Liferay.Language.get('assets')}
 					/>
 				</div>
 			</BasePage.SubHeader>
@@ -497,6 +510,7 @@ const List = () => {
 									'objectType',
 									'tags/id',
 									'categories/id',
+									'cmpProjects/id',
 									'mimeType',
 								],
 								label: Liferay.Language.get('filter-by'),

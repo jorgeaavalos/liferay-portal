@@ -12,6 +12,7 @@ import {navigate, sessionStorage, sub} from 'frontend-js-web';
 
 import StatusLabel from '../../common/components/StatusLabel';
 import {openCMSModal} from '../../common/utils/openCMSModal';
+import CompareVersionsModalContent from '../compare_versions/CompareVersionsModalContent';
 import FilePreviewerModalContent from '../modal/FilePreviewerModalContent';
 import confirmAndDeleteEntryAction from './actions/confirmAndDeleteEntryAction';
 import deleteAssetVersionBulkAction from './actions/deleteAssetVersionBulkAction';
@@ -36,7 +37,24 @@ export default function ViewVersionHistoryFDSPropsTransformer({
 }) {
 	return {
 		...otherProps,
-		bulkActions: transformFDSBulkActions(bulkActions),
+		bulkActions: transformFDSBulkActions(bulkActions).map((bulkAction) => {
+			if (bulkAction?.data?.id === 'compare') {
+				return {
+					...bulkAction,
+					isDisabled: ({
+						allItemsSelectedActive,
+						selectedItems,
+					}: {
+						allItemsSelectedActive?: boolean;
+						selectedItems?: Array<any>;
+					}) =>
+						Boolean(allItemsSelectedActive) ||
+						selectedItems?.length !== 2,
+				};
+			}
+
+			return bulkAction;
+		}),
 		customRenderers: {
 			tableCell: [
 				{
@@ -63,7 +81,14 @@ export default function ViewVersionHistoryFDSPropsTransformer({
 		},
 		hideManagementBarInEmptyState: true,
 		itemsActions: itemsActions.map((action) => {
-			if (action?.data?.id === 'download') {
+			if (action?.data?.id === 'compare') {
+				return {
+					...action,
+					isVisible: () =>
+						additionalProps.objectEntryVersionsCount > 1,
+				};
+			}
+			else if (action?.data?.id === 'download') {
 				return {
 					...action,
 					isVisible: (item: any) => Boolean(item?.file?.link?.href),
@@ -118,6 +143,29 @@ export default function ViewVersionHistoryFDSPropsTransformer({
 					classVersion: String(
 						itemData.systemProperties.version.number
 					),
+				});
+			}
+			else if (action?.data?.id === 'compare') {
+				event?.preventDefault();
+
+				openCMSModal({
+					contentComponent: ({
+						closeModal,
+					}: {
+						closeModal: () => void;
+					}) =>
+						CompareVersionsModalContent({
+							apiURL: otherProps.apiURL as string,
+							availableLanguageIds:
+								additionalProps.availableLanguageIds,
+							closeModal,
+							defaultLanguageId:
+								additionalProps.defaultLanguageId,
+							initialVersion:
+								itemData.systemProperties.version.number,
+							objectEntryId: additionalProps.classPK,
+						}),
+					size: 'full-screen',
 				});
 			}
 			else if (action.data.id === 'copy') {
@@ -232,7 +280,32 @@ export default function ViewVersionHistoryFDSPropsTransformer({
 			action: any;
 			selectedData: any;
 		}) => {
-			if (action?.data.id === 'delete') {
+			if (action?.data.id === 'compare') {
+				const [sourceVersion, targetVersion] = (
+					selectedData?.keyValues || []
+				).map(Number);
+
+				openCMSModal({
+					contentComponent: ({
+						closeModal,
+					}: {
+						closeModal: () => void;
+					}) =>
+						CompareVersionsModalContent({
+							apiURL: otherProps.apiURL as string,
+							availableLanguageIds:
+								additionalProps.availableLanguageIds,
+							closeModal,
+							defaultLanguageId:
+								additionalProps.defaultLanguageId,
+							initialTargetVersion: targetVersion,
+							initialVersion: sourceVersion,
+							objectEntryId: additionalProps.classPK,
+						}),
+					size: 'full-screen',
+				});
+			}
+			else if (action?.data.id === 'delete') {
 				deleteAssetVersionBulkAction({
 					apiURL: otherProps.apiURL,
 					className: additionalProps.className,

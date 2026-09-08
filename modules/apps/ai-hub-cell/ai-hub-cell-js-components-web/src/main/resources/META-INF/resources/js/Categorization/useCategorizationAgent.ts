@@ -6,6 +6,7 @@
 import {EventSource} from 'eventsource';
 import {useCallback, useEffect, useRef, useState} from 'react';
 
+import {RequestTooLargeError} from '../utils/throwIfRequestTooLarge';
 import {
 	createCategorizationEventSource,
 	postCategorizationAgentInstance,
@@ -30,13 +31,34 @@ function toRequestContext(
 	};
 
 	if (agent === ECategorizationAgent.AUTO_CATEGORIZE) {
+		const appliedCategoryIds = new Set(context.appliedCategoryIds ?? []);
+		const candidateCategories = context.candidateCategories ?? [];
+
+		requestContext.appliedCategories = JSON.stringify(
+			candidateCategories.filter((candidateCategory) =>
+				appliedCategoryIds.has(candidateCategory.id)
+			)
+		);
 		requestContext.candidateCategories = JSON.stringify(
-			context.candidateCategories ?? []
+			candidateCategories.filter(
+				(candidateCategory) =>
+					!appliedCategoryIds.has(candidateCategory.id)
+			)
 		);
 	}
 	else {
+		const appliedTags = context.appliedTags ?? [];
+
+		const lowerCaseAppliedTags = new Set(
+			appliedTags.map((appliedTag) => appliedTag.toLowerCase())
+		);
+
+		requestContext.appliedTags = JSON.stringify(appliedTags);
 		requestContext.existingTags = JSON.stringify(
-			context.existingTags ?? []
+			(context.existingTags ?? []).filter(
+				(existingTag) =>
+					!lowerCaseAppliedTags.has(existingTag.toLowerCase())
+			)
 		);
 	}
 
@@ -51,6 +73,7 @@ function resolveTargetSuggestions(
 	const suggestions: Suggestion[] = [];
 
 	if (agent === ECategorizationAgent.AUTO_CATEGORIZE) {
+		const appliedCategoryIds = new Set(context.appliedCategoryIds ?? []);
 		const candidateCategories = context.candidateCategories ?? [];
 		const seen = new Set<number>();
 
@@ -61,7 +84,11 @@ function resolveTargetSuggestions(
 				(candidate) => candidate.name.trim().toLowerCase() === name
 			);
 
-			if (candidateCategory && !seen.has(candidateCategory.id)) {
+			if (
+				candidateCategory &&
+				!appliedCategoryIds.has(candidateCategory.id) &&
+				!seen.has(candidateCategory.id)
+			) {
 				seen.add(candidateCategory.id);
 
 				suggestions.push({
@@ -73,6 +100,12 @@ function resolveTargetSuggestions(
 
 		return suggestions;
 	}
+
+	const appliedTags = new Set(
+		(context.appliedTags ?? []).map((appliedTag) =>
+			appliedTag.toLowerCase()
+		)
+	);
 
 	const existingTagsByLowerCase = new Map<string, string>();
 
@@ -86,7 +119,11 @@ function resolveTargetSuggestions(
 		const name = target.trim();
 		const lowerCaseName = name.toLowerCase();
 
-		if (!name || seen.has(lowerCaseName)) {
+		if (
+			!name ||
+			appliedTags.has(lowerCaseName) ||
+			seen.has(lowerCaseName)
+		) {
 			return;
 		}
 
@@ -132,12 +169,16 @@ export default function useCategorizationAgent(agent: ECategorizationAgent) {
 					sseEventSinkKey: sseEventSinkKeyRef.current as string,
 				});
 			}
-			catch {
+			catch (error) {
 				if (stoppedRef.current) {
 					return;
 				}
 
-				setError(Liferay.Language.get('an-unexpected-error-occurred'));
+				setError(
+					error instanceof RequestTooLargeError
+						? error.message
+						: Liferay.Language.get('an-unexpected-error-occurred')
+				);
 				setStatus('error');
 
 				closeEventSource();
@@ -209,29 +250,14 @@ export default function useCategorizationAgent(agent: ECategorizationAgent) {
 					closeEventSource();
 				});
 
-				eventSource.addEventListener(
-					'Agent Invocation Failed',
-					(event) => {
-						let text = '';
+				eventSource.addEventListener('Agent Invocation Failed', () => {
+					setError(
+						Liferay.Language.get('an-unexpected-error-occurred')
+					);
+					setStatus('error');
 
-						try {
-							text = JSON.parse(event.data).data;
-						}
-						catch {
-							text = '';
-						}
-
-						setError(
-							text ||
-								Liferay.Language.get(
-									'an-unexpected-error-occurred'
-								)
-						);
-						setStatus('error');
-
-						closeEventSource();
-					}
-				);
+					closeEventSource();
+				});
 
 				eventSource.addEventListener('error', () => {
 					if (stoppedRef.current) {

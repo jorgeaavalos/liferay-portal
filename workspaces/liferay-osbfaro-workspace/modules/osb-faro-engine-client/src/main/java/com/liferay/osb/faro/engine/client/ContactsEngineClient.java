@@ -22,6 +22,7 @@ import com.liferay.osb.faro.engine.client.model.ActivityGroup;
 import com.liferay.osb.faro.engine.client.model.ApiUsageMetric;
 import com.liferay.osb.faro.engine.client.model.Asset;
 import com.liferay.osb.faro.engine.client.model.AssetSummary;
+import com.liferay.osb.faro.engine.client.model.AssetSummaryCMPProject;
 import com.liferay.osb.faro.engine.client.model.AssetSummaryCategory;
 import com.liferay.osb.faro.engine.client.model.AssetSummaryMimeType;
 import com.liferay.osb.faro.engine.client.model.AssetSummaryTag;
@@ -29,6 +30,8 @@ import com.liferay.osb.faro.engine.client.model.AssetSummaryType;
 import com.liferay.osb.faro.engine.client.model.AssetSummaryVocabulary;
 import com.liferay.osb.faro.engine.client.model.Author;
 import com.liferay.osb.faro.engine.client.model.BlockedKeyword;
+import com.liferay.osb.faro.engine.client.model.Campaign;
+import com.liferay.osb.faro.engine.client.model.CampaignMetric;
 import com.liferay.osb.faro.engine.client.model.CatalogField;
 import com.liferay.osb.faro.engine.client.model.Channel;
 import com.liferay.osb.faro.engine.client.model.ChannelDataSource;
@@ -200,7 +203,8 @@ public interface ContactsEngineClient {
 
 	public Results<Individual> getAccountIndividuals(
 		FaroProject faroProject, String accountId, String channelId,
-		String query, int cur, int delta, String sortString);
+		String query, String rangeEnd, Integer rangeKey, String rangeStart,
+		int cur, int delta, String sortString);
 
 	public Results<IndividualSegment> getAccountIndividualSegments(
 		FaroProject faroProject, String accountId, String channelId,
@@ -311,6 +315,11 @@ public interface ContactsEngineClient {
 		String rangeStart, String selectedMetric, String sort,
 		String vocabularyId, int cur, int delta);
 
+	public Results<AssetSummaryCMPProject> getAssetSummaryCMPProjects(
+		FaroProject faroProject, String accountId, long channelId,
+		String individualId, String keywords, String rangeEnd, int rangeKey,
+		String rangeStart, String sort, int cur, int delta);
+
 	public Results<AssetSummaryMimeType> getAssetSummaryMimeTypes(
 		FaroProject faroProject, long channelId, String rangeEnd, int rangeKey,
 		String rangeStart, int cur, int delta);
@@ -337,6 +346,23 @@ public interface ContactsEngineClient {
 	public Results<BlockedKeyword> getBlockedKeywords(
 		FaroProject faroProject, String query, int cur, int delta,
 		List<OrderByField> orderByFields);
+
+	public Campaign getCampaign(
+			FaroProject faroProject, long channelId, String id)
+		throws FaroEngineClientException;
+
+	public Results<Account> getCampaignAccounts(
+			FaroProject faroProject, long channelId, String filterString,
+			String id, String query, String sortString, int cur, int delta)
+		throws FaroEngineClientException;
+
+	public List<CampaignMetric> getCampaignMetrics(
+			FaroProject faroProject, long channelId)
+		throws FaroEngineClientException;
+
+	public Results<Campaign> getCampaigns(
+		FaroProject faroProject, long channelId, String filterString,
+		String query, String sortString, int cur, int delta);
 
 	public Results<CatalogField> getCatalogFields(
 			FaroProject faroProject, String capability, String query,

@@ -10,12 +10,14 @@ import com.liferay.osb.faro.web.internal.controller.contacts.AccountFaroControll
 import com.liferay.osb.faro.web.internal.controller.contacts.AccountLifecycleFaroController;
 import com.liferay.osb.faro.web.internal.controller.contacts.ActivityFaroController;
 import com.liferay.osb.faro.web.internal.controller.contacts.ActivityGroupFaroController;
+import com.liferay.osb.faro.web.internal.controller.contacts.AssetSummaryCMPProjectFaroController;
 import com.liferay.osb.faro.web.internal.controller.contacts.AssetSummaryCategoryFaroController;
 import com.liferay.osb.faro.web.internal.controller.contacts.AssetSummaryFaroController;
 import com.liferay.osb.faro.web.internal.controller.contacts.AssetSummaryMimeTypeFaroController;
 import com.liferay.osb.faro.web.internal.controller.contacts.AssetSummaryTagFaroController;
 import com.liferay.osb.faro.web.internal.controller.contacts.AssetSummaryTypeFaroController;
 import com.liferay.osb.faro.web.internal.controller.contacts.AssetSummaryVocabularyFaroController;
+import com.liferay.osb.faro.web.internal.controller.contacts.CampaignFaroController;
 import com.liferay.osb.faro.web.internal.controller.contacts.ContactsCardFaroController;
 import com.liferay.osb.faro.web.internal.controller.contacts.ContactsCardTemplateFaroController;
 import com.liferay.osb.faro.web.internal.controller.contacts.ContactsLayoutFaroController;
@@ -55,11 +57,13 @@ public class ContactsApplication extends BaseApplication {
 		controllers.add(_activityFaroController);
 		controllers.add(_activityGroupFaroController);
 		controllers.add(_assetSummaryCategoryFaroController);
+		controllers.add(_assetSummaryCMPProjectFaroController);
 		controllers.add(_assetSummaryFaroController);
 		controllers.add(_assetSummaryMimeTypeFaroController);
 		controllers.add(_assetSummaryTagFaroController);
 		controllers.add(_assetSummaryTypeFaroController);
 		controllers.add(_assetSummaryVocabularyFaroController);
+		controllers.add(_campaignFaroController);
 		controllers.add(_contactsCardFaroController);
 		controllers.add(_contactsCardTemplateFaroController);
 		controllers.add(_contactsLayoutFaroController);
@@ -94,6 +98,10 @@ public class ContactsApplication extends BaseApplication {
 		_assetSummaryCategoryFaroController;
 
 	@Reference
+	private AssetSummaryCMPProjectFaroController
+		_assetSummaryCMPProjectFaroController;
+
+	@Reference
 	private AssetSummaryFaroController _assetSummaryFaroController;
 
 	@Reference
@@ -109,6 +117,9 @@ public class ContactsApplication extends BaseApplication {
 	@Reference
 	private AssetSummaryVocabularyFaroController
 		_assetSummaryVocabularyFaroController;
+
+	@Reference
+	private CampaignFaroController _campaignFaroController;
 
 	@Reference
 	private ContactsCardFaroController _contactsCardFaroController;

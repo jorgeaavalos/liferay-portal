@@ -56,6 +56,7 @@ import com.liferay.object.service.ObjectDefinitionSettingLocalServiceUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.petra.string.StringUtil;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
@@ -105,6 +106,27 @@ import java.util.Objects;
  * @author Eudaldo Alonso
  */
 public class ActionUtil {
+
+	public static void deleteCompareContentLayoutPageTemplateEntry(
+			long classNameId, long groupId)
+		throws PortalException {
+
+		synchronized (_compareContentLayoutLock) {
+			LayoutPageTemplateEntry layoutPageTemplateEntry =
+				LayoutPageTemplateEntryLocalServiceUtil.
+					fetchLayoutPageTemplateEntry(
+						groupId,
+						_COMPARE_LAYOUT_PAGE_TEMPLATE_ENTRY_KEY_PREFIX +
+							classNameId);
+
+			if (layoutPageTemplateEntry == null) {
+				return;
+			}
+
+			LayoutPageTemplateEntryLocalServiceUtil.
+				deleteLayoutPageTemplateEntry(layoutPageTemplateEntry);
+		}
+	}
 
 	public static void generateEditContentLayoutStructure(
 			FormManager formManager,
@@ -642,6 +664,52 @@ public class ActionUtil {
 		return getStructuredContentDropdownItem(
 			httpServletRequest, "video", "external-video",
 			"L_CMS_EXTERNAL_VIDEO", objectEntryFolderExternalReferenceCode);
+	}
+
+	public static String getCompareURL(
+		FormManager formManager,
+		FragmentEntryLinkListenerRegistry fragmentEntryLinkListenerRegistry,
+		FragmentEntryLinkService fragmentEntryLinkService,
+		FragmentRendererRegistry fragmentRendererRegistry,
+		HttpServletRequest httpServletRequest, String id,
+		InfoItemServiceRegistry infoItemServiceRegistry,
+		InfoSearchClassMapperRegistry infoSearchClassMapperRegistry,
+		ObjectDefinition objectDefinition) {
+
+		try {
+			long classNameId = PortalUtil.getClassNameId(
+				objectDefinition.getClassName());
+
+			ThemeDisplay themeDisplay =
+				(ThemeDisplay)httpServletRequest.getAttribute(
+					WebKeys.THEME_DISPLAY);
+
+			Group group = GroupLocalServiceUtil.getGroup(
+				themeDisplay.getCompanyId(), GroupConstants.CMS);
+
+			Layout layout = _getCompareContentLayout(
+				classNameId, formManager, fragmentEntryLinkListenerRegistry,
+				fragmentEntryLinkService, fragmentRendererRegistry, group,
+				infoItemServiceRegistry, infoSearchClassMapperRegistry,
+				objectDefinition,
+				ServiceContextFactory.getInstance(httpServletRequest));
+
+			return PortalUtil.addPreservedParameters(
+				themeDisplay,
+				StringBundler.concat(
+					PortalUtil.getGroupFriendlyURL(
+						group.getPublicLayoutSet(), themeDisplay, false, false),
+					_getURLSeparator(),
+					layout.getFriendlyURL(themeDisplay.getLocale()),
+					StringPool.SLASH, classNameId, StringPool.SLASH, id));
+		}
+		catch (Exception exception) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(exception);
+			}
+		}
+
+		return StringPool.BLANK;
 	}
 
 	public static List<DropdownItem> getContentsCustomDropdownItems(
@@ -1198,6 +1266,50 @@ public class ActionUtil {
 	}
 
 	private static LayoutPageTemplateEntry
+			_addCompareContentDefaultLayoutPageTemplateEntry(
+				long classNameId, FormManager formManager,
+				FragmentEntryLinkListenerRegistry
+					fragmentEntryLinkListenerRegistry,
+				FragmentEntryLinkService fragmentEntryLinkService,
+				FragmentRendererRegistry fragmentRendererRegistry, long groupId,
+				InfoItemServiceRegistry infoItemServiceRegistry,
+				InfoSearchClassMapperRegistry infoSearchClassMapperRegistry,
+				String objectDefinitionName, ServiceContext serviceContext)
+		throws Exception {
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			LayoutPageTemplateEntryLocalServiceUtil.addLayoutPageTemplateEntry(
+				null, serviceContext.getUserId(), groupId, 0,
+				_COMPARE_LAYOUT_PAGE_TEMPLATE_ENTRY_KEY_PREFIX + classNameId,
+				classNameId, null,
+				_COMPARE_LAYOUT_PAGE_TEMPLATE_ENTRY_KEY_PREFIX +
+					objectDefinitionName,
+				LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE, 0, true, 0,
+				0, 0, WorkflowConstants.STATUS_APPROVED, serviceContext);
+
+		Layout layout = LayoutLocalServiceUtil.getLayout(
+			layoutPageTemplateEntry.getPlid());
+
+		Layout draftLayout = layout.fetchDraftLayout();
+
+		_generateCompareContentLayoutStructure(
+			formManager, fragmentEntryLinkListenerRegistry,
+			fragmentEntryLinkService, fragmentRendererRegistry,
+			infoItemServiceRegistry, infoSearchClassMapperRegistry, draftLayout,
+			layoutPageTemplateEntry, serviceContext);
+
+		LayoutLocalServiceUtil.copyLayoutContent(draftLayout, layout);
+
+		draftLayout = LayoutLocalServiceUtil.getLayout(draftLayout.getPlid());
+
+		draftLayout.setStatus(WorkflowConstants.STATUS_APPROVED);
+
+		LayoutLocalServiceUtil.updateLayout(draftLayout);
+
+		return layoutPageTemplateEntry;
+	}
+
+	private static LayoutPageTemplateEntry
 			_addEditContentDefaultLayoutPageTemplateEntry(
 				long classNameId, FormManager formManager,
 				FragmentEntryLinkListenerRegistry
@@ -1600,6 +1712,170 @@ public class ActionUtil {
 		return layoutPageTemplateEntry;
 	}
 
+	private static void _generateCompareContentLayoutStructure(
+			FormManager formManager,
+			FragmentEntryLinkListenerRegistry fragmentEntryLinkListenerRegistry,
+			FragmentEntryLinkService fragmentEntryLinkService,
+			FragmentRendererRegistry fragmentRendererRegistry,
+			InfoItemServiceRegistry infoItemServiceRegistry,
+			InfoSearchClassMapperRegistry infoSearchClassMapperRegistry,
+			Layout layout, LayoutPageTemplateEntry layoutPageTemplateEntry,
+			ServiceContext serviceContext)
+		throws Exception {
+
+		long segmentsExperienceId =
+			SegmentsExperienceLocalServiceUtil.fetchDefaultSegmentsExperienceId(
+				layout.getPlid());
+
+		LayoutStructure layoutStructure = new LayoutStructure();
+
+		layoutStructure.addRootLayoutStructureItem();
+
+		ContainerStyledLayoutStructureItem
+			parentContainerStyledLayoutStructureItem =
+				(ContainerStyledLayoutStructureItem)
+					layoutStructure.addContainerStyledLayoutStructureItem(
+						layoutStructure.getMainItemId(), 0);
+
+		parentContainerStyledLayoutStructureItem.updateItemConfig(
+			JSONUtil.put(
+				"styles",
+				JSONUtil.put(
+					"paddingBottom", "40px"
+				).put(
+					"paddingLeft", "12px"
+				).put(
+					"paddingRight", "12px"
+				).put(
+					"paddingTop", "40px"
+				)));
+
+		ContainerStyledLayoutStructureItem
+			childContainerStyledLayoutStructureItem =
+				(ContainerStyledLayoutStructureItem)
+					layoutStructure.addContainerStyledLayoutStructureItem(
+						parentContainerStyledLayoutStructureItem.getItemId(),
+						0);
+
+		childContainerStyledLayoutStructureItem.setWidthType("fixed");
+
+		FormStyledLayoutStructureItem formStyledLayoutStructureItem =
+			(FormStyledLayoutStructureItem)
+				layoutStructure.addFormStyledLayoutStructureItem(
+					childContainerStyledLayoutStructureItem.getItemId(), 0);
+
+		formStyledLayoutStructureItem.setClassNameId(
+			layoutPageTemplateEntry.getClassNameId());
+
+		formStyledLayoutStructureItem.updateItemConfig(
+			JSONUtil.put(
+				"cssClasses", JSONUtil.put("lfr-main-form-container")));
+
+		List<FragmentEntryLink> addedFragmentEntryLinks = new ArrayList<>();
+
+		InfoForm infoForm = _getInfoForm(
+			layoutPageTemplateEntry.getClassNameId(), layout.getGroupId(),
+			infoItemServiceRegistry, infoSearchClassMapperRegistry);
+
+		_addInputFragmentEntryLink(
+			addedFragmentEntryLinks, null, formManager,
+			"INPUTS-inline-text-input",
+			infoForm.getInfoField("ObjectField_title"), layout, layoutStructure,
+			formStyledLayoutStructureItem, true, segmentsExperienceId,
+			serviceContext, JSONUtil.put("marginBottom", "5"));
+
+		FragmentEntryLink fragmentEntryLink = _addFragmentEntryLink(
+			StringPool.BLANK, fragmentEntryLinkService,
+			fragmentRendererRegistry,
+			SpacesComponentSectionFragmentRenderer.class.getName(), layout,
+			segmentsExperienceId, serviceContext);
+
+		if (fragmentEntryLink != null) {
+			LayoutStructureItem layoutStructureItem =
+				layoutStructure.addFragmentStyledLayoutStructureItem(
+					fragmentEntryLink.getFragmentEntryLinkId(),
+					formStyledLayoutStructureItem.getItemId(), -1);
+
+			layoutStructureItem.updateItemConfig(
+				JSONUtil.put("styles", JSONUtil.put("marginBottom", "16px")));
+
+			addedFragmentEntryLinks.add(fragmentEntryLink);
+		}
+
+		_addInputFragmentEntryLink(
+			addedFragmentEntryLinks, null, formManager,
+			"INPUTS-friendly-url-input",
+			infoForm.getInfoField("objectEntryFriendlyURL"), layout,
+			layoutStructure, formStyledLayoutStructureItem, true,
+			segmentsExperienceId, serviceContext,
+			JSONUtil.put("marginBottom", "5"));
+
+		ObjectDefinition objectDefinition =
+			ObjectDefinitionLocalServiceUtil.fetchObjectDefinitionByClassName(
+				layout.getCompanyId(), layoutPageTemplateEntry.getClassName());
+
+		layoutStructure = _addInputFragmentEntryLinks(
+			addedFragmentEntryLinks, true, fragmentEntryLinkListenerRegistry,
+			fragmentEntryLinkService, formManager, fragmentRendererRegistry,
+			(InfoFieldSet)infoForm.getInfoFieldSetEntry(
+				objectDefinition.getName()),
+			layout, layoutStructure, formStyledLayoutStructureItem,
+			objectDefinition.getName(), true, true, segmentsExperienceId,
+			serviceContext, JSONUtil.put("marginBottom", "16px"));
+
+		LayoutPageTemplateStructureLocalServiceUtil.
+			updateLayoutPageTemplateStructureData(
+				serviceContext.getUserId(), layout.getGroupId(),
+				layout.getPlid(), segmentsExperienceId,
+				layoutStructure.toString());
+
+		for (FragmentEntryLink addedFragmentEntryLink :
+				addedFragmentEntryLinks) {
+
+			for (FragmentEntryLinkListener fragmentEntryLinkListener :
+					fragmentEntryLinkListenerRegistry.
+						getFragmentEntryLinkListeners()) {
+
+				fragmentEntryLinkListener.onAddFragmentEntryLink(
+					addedFragmentEntryLink);
+			}
+		}
+	}
+
+	private static Layout _getCompareContentLayout(
+			long classNameId, FormManager formManager,
+			FragmentEntryLinkListenerRegistry fragmentEntryLinkListenerRegistry,
+			FragmentEntryLinkService fragmentEntryLinkService,
+			FragmentRendererRegistry fragmentRendererRegistry, Group group,
+			InfoItemServiceRegistry infoItemServiceRegistry,
+			InfoSearchClassMapperRegistry infoSearchClassMapperRegistry,
+			ObjectDefinition objectDefinition, ServiceContext serviceContext)
+		throws Exception {
+
+		synchronized (_compareContentLayoutLock) {
+			LayoutPageTemplateEntry layoutPageTemplateEntry =
+				LayoutPageTemplateEntryLocalServiceUtil.
+					fetchLayoutPageTemplateEntry(
+						group.getGroupId(),
+						_COMPARE_LAYOUT_PAGE_TEMPLATE_ENTRY_KEY_PREFIX +
+							classNameId);
+
+			if (layoutPageTemplateEntry == null) {
+				layoutPageTemplateEntry =
+					_addCompareContentDefaultLayoutPageTemplateEntry(
+						classNameId, formManager,
+						fragmentEntryLinkListenerRegistry,
+						fragmentEntryLinkService, fragmentRendererRegistry,
+						group.getGroupId(), infoItemServiceRegistry,
+						infoSearchClassMapperRegistry,
+						objectDefinition.getName(), serviceContext);
+			}
+
+			return LayoutLocalServiceUtil.fetchLayout(
+				layoutPageTemplateEntry.getPlid());
+		}
+	}
+
 	private static Layout _getEditContentLayout(
 			long classNameId, FormManager formManager,
 			FragmentEntryLinkListenerRegistry fragmentEntryLinkListenerRegistry,
@@ -1704,6 +1980,9 @@ public class ActionUtil {
 		return FriendlyURLResolverConstants.URL_SEPARATOR_X_CUSTOM_ASSET;
 	}
 
+	private static final String _COMPARE_LAYOUT_PAGE_TEMPLATE_ENTRY_KEY_PREFIX =
+		"LFR_CMS_COMPARE_";
+
 	private static final String[] _HIDDEN_INFO_FIELDS = {
 		"displayDate", "expirationDate", "externalReferenceCode",
 		"objectEntryFriendlyURL", "reviewDate", "title"
@@ -1714,5 +1993,7 @@ public class ActionUtil {
 			"LFR_CMS_TRANSLATION_";
 
 	private static final Log _log = LogFactoryUtil.getLog(ActionUtil.class);
+
+	private static final Object _compareContentLayoutLock = new Object();
 
 }

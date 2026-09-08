@@ -1260,8 +1260,14 @@ public class DataFactory {
 	public AssetEntryModel newAssetEntryModel(
 		ObjectEntryModel objectEntryModel) {
 
+		long groupId = objectEntryModel.getGroupId();
+
+		if (groupId == 0) {
+			groupId = _globalGroupId;
+		}
+
 		return newAssetEntryModel(
-			objectEntryModel.getGroupId(), objectEntryModel.getCreateDate(),
+			groupId, objectEntryModel.getCreateDate(),
 			objectEntryModel.getModifiedDate(),
 			getClassNameId(
 				ObjectDefinitionConstants.
@@ -8519,6 +8525,7 @@ public class DataFactory {
 		objectEntryModel.setHeadObjectEntryId(
 			objectEntryModel.getObjectEntryId());
 		objectEntryModel.setObjectDefinitionId(objectDefinitionId);
+		objectEntryModel.setDefaultLanguageId("en_US");
 		objectEntryModel.setStatus(WorkflowConstants.STATUS_APPROVED);
 		objectEntryModel.setStatusByUserId(_sampleUserId);
 		objectEntryModel.setStatusByUserName(_SAMPLE_USER_NAME);

@@ -8,6 +8,7 @@ import {compose} from 'redux';
 import {connect} from 'react-redux';
 import {DEVELOPER_MODE} from 'shared/util/constants';
 import {DownloadReportProvider} from 'shared/components/download-report/DownloadReportContext';
+import {ENABLE_CAMPAIGNS} from 'shared/util/feature-flags';
 import {
 	matchPath,
 	Route,
@@ -121,6 +122,20 @@ const IndividualsDashboard = lazy(() =>
 const IndividualsDashboardCDP = lazy(() =>
 	import(
 		/* webpackChunkName: "IndividualsDashboardCDP" */ '../../individual/dashboard/pages/IndividualsDashboardCDP'
+	)
+);
+
+/* Campaigns */
+
+const CampaignsDashboard = lazy(() =>
+	import(
+		/* webpackChunkName: "CampaignsDashboard" */ '../../campaigns/pages'
+	)
+);
+
+const CampaignDetail = lazy(() =>
+	import(
+		/* webpackChunkName: "CampaignDetail" */ '../../campaigns/pages/CampaignDetail'
 	)
 );
 
@@ -256,6 +271,30 @@ const AppSidebarRoutes = ({LDPEnabled, currentUser, groupId}) => {
 										/>
 									}
 									path=":channelId?/contacts/accounts/:id/*"
+								/>
+							)}
+
+							{LDPEnabled && ENABLE_CAMPAIGNS && (
+								<Route
+									element={
+										<BundleRouter
+											data={CampaignsDashboard}
+											destructured={false}
+										/>
+									}
+									path=":channelId?/campaigns"
+								/>
+							)}
+
+							{LDPEnabled && ENABLE_CAMPAIGNS && (
+								<Route
+									element={
+										<BundleRouter
+											data={CampaignDetail}
+											destructured={false}
+										/>
+									}
+									path=":channelId?/campaigns/:id"
 								/>
 							)}
 
