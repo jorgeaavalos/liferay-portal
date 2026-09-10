@@ -164,6 +164,12 @@ public interface DefaultObjectEntryManager extends ObjectEntryManager {
 			ObjectDefinition objectDefinition, long objectEntryId)
 		throws Exception;
 
+	public ObjectEntry getObjectEntry(
+			DTOConverterContext dtoConverterContext,
+			ObjectDefinition objectDefinition,
+			com.liferay.object.model.ObjectEntry serviceBuilderObjectEntry)
+		throws Exception;
+
 	public ObjectEntry getObjectEntryByVersion(
 			DTOConverterContext dtoConverterContext,
 			String externalReferenceCode, ObjectDefinition objectDefinition,
@@ -196,6 +202,14 @@ public interface DefaultObjectEntryManager extends ObjectEntryManager {
 	public Page<Object> getRelatedSystemObjectEntries(
 			ObjectDefinition objectDefinition, Long objectEntryId,
 			String objectRelationshipName, Pagination pagination)
+		throws Exception;
+
+	public Page<com.liferay.object.model.ObjectEntry>
+			getServiceBuilderObjectEntries(
+				long companyId, ObjectDefinition objectDefinition,
+				String scopeKey, DTOConverterContext dtoConverterContext,
+				String filterString, Pagination pagination, String search,
+				Sort[] sorts)
 		throws Exception;
 
 	public Object getSystemObjectEntry(

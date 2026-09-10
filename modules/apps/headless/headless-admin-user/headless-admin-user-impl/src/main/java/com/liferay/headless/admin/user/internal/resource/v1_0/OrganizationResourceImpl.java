@@ -8,7 +8,6 @@ package com.liferay.headless.admin.user.internal.resource.v1_0;
 import com.liferay.account.exception.DuplicateAccountEntryOrganizationRelException;
 import com.liferay.account.model.AccountEntry;
 import com.liferay.account.model.AccountEntryOrganizationRel;
-import com.liferay.account.service.AccountEntryOrganizationRelLocalService;
 import com.liferay.account.service.AccountEntryOrganizationRelService;
 import com.liferay.account.service.AccountEntryService;
 import com.liferay.asset.kernel.model.AssetCategory;
@@ -152,9 +151,8 @@ public class OrganizationResourceImpl
 	public void deleteAccountOrganization(Long accountId, String organizationId)
 		throws Exception {
 
-		_accountEntryOrganizationRelLocalService.
-			deleteAccountEntryOrganizationRel(
-				accountId, GetterUtil.getLong(organizationId));
+		_accountEntryOrganizationRelService.deleteAccountEntryOrganizationRel(
+			accountId, GetterUtil.getLong(organizationId));
 	}
 
 	@Override
@@ -231,7 +229,8 @@ public class OrganizationResourceImpl
 
 		AccountEntryOrganizationRel accountEntryOrganizationRel =
 			_accountEntryOrganizationRelService.getAccountEntryOrganizationRel(
-				accountEntry.getAccountEntryId(), Long.valueOf(organizationId));
+				accountEntry.getAccountEntryId(),
+				GetterUtil.getLong(organizationId));
 
 		return _toOrganization(
 			String.valueOf(accountEntryOrganizationRel.getOrganizationId()));
@@ -260,7 +259,8 @@ public class OrganizationResourceImpl
 
 		AccountEntryOrganizationRel accountEntryOrganizationRel =
 			_accountEntryOrganizationRelService.getAccountEntryOrganizationRel(
-				accountEntry.getAccountEntryId(), Long.valueOf(organizationId));
+				accountEntry.getAccountEntryId(),
+				GetterUtil.getLong(organizationId));
 
 		return _toOrganization(
 			String.valueOf(accountEntryOrganizationRel.getOrganizationId()));
@@ -534,7 +534,7 @@ public class OrganizationResourceImpl
 	public void postAccountOrganization(Long accountId, String organizationId)
 		throws Exception {
 
-		_accountEntryOrganizationRelLocalService.addAccountEntryOrganizationRel(
+		_accountEntryOrganizationRelService.addAccountEntryOrganizationRel(
 			accountId, GetterUtil.getLong(organizationId));
 	}
 
@@ -1471,10 +1471,6 @@ public class OrganizationResourceImpl
 
 	private static final EntityModel _entityModel =
 		new OrganizationEntityModel();
-
-	@Reference
-	private AccountEntryOrganizationRelLocalService
-		_accountEntryOrganizationRelLocalService;
 
 	@Reference
 	private AccountEntryOrganizationRelService

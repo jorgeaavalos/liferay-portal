@@ -74,7 +74,9 @@ public class ObjectEntryInfoItemUtil {
 
 		int version = serviceBuilderObjectEntry.getVersion();
 
-		if (serviceBuilderObjectEntry.getHeadObjectEntryId() > 0) {
+		if ((serviceBuilderObjectEntry.getHeadObjectEntryId() > 0) &&
+			!serviceBuilderObjectEntry.isHead()) {
+
 			serviceBuilderObjectEntry =
 				ObjectEntryLocalServiceUtil.fetchObjectEntry(
 					serviceBuilderObjectEntry.getHeadObjectEntryId());
@@ -90,35 +92,38 @@ public class ObjectEntryInfoItemUtil {
 		}
 
 		try {
-			if (serviceBuilderObjectEntry.isRootDescendantNode() &&
-				(objectEntryManager instanceof DefaultObjectEntryManager)) {
+			if (objectEntryManager instanceof
+					DefaultObjectEntryManager defaultObjectEntryManager) {
 
-				DefaultObjectEntryManager defaultObjectEntryManager =
-					(DefaultObjectEntryManager)objectEntryManager;
+				if (serviceBuilderObjectEntry.isRootDescendantNode()) {
+					for (ObjectRelationship objectRelationship :
+							ObjectRelationshipLocalServiceUtil.
+								getObjectRelationshipsByObjectDefinitionId2(
+									objectDefinition.getObjectDefinitionId(),
+									true)) {
 
-				for (ObjectRelationship objectRelationship :
-						ObjectRelationshipLocalServiceUtil.
-							getObjectRelationshipsByObjectDefinitionId2(
-								objectDefinition.getObjectDefinitionId(),
-								true)) {
+						ObjectField objectField =
+							ObjectFieldLocalServiceUtil.getObjectField(
+								objectRelationship.getObjectFieldId2());
 
-					ObjectField objectField =
-						ObjectFieldLocalServiceUtil.getObjectField(
-							objectRelationship.getObjectFieldId2());
+						long parentObjectEntryId = MapUtil.getLong(
+							serviceBuilderObjectEntry.getValues(),
+							objectField.getName());
 
-					long parentObjectEntryId = MapUtil.getLong(
-						serviceBuilderObjectEntry.getValues(),
-						objectField.getName());
+						if (parentObjectEntryId == 0) {
+							continue;
+						}
 
-					if (parentObjectEntryId == 0) {
-						continue;
+						return defaultObjectEntryManager.getRelatedObjectEntry(
+							dtoConverterContext,
+							serviceBuilderObjectEntry.getObjectEntryId(),
+							objectRelationship, parentObjectEntryId);
 					}
-
-					return defaultObjectEntryManager.getRelatedObjectEntry(
-						dtoConverterContext,
-						serviceBuilderObjectEntry.getObjectEntryId(),
-						objectRelationship, parentObjectEntryId);
 				}
+
+				return defaultObjectEntryManager.getObjectEntry(
+					dtoConverterContext, objectDefinition,
+					serviceBuilderObjectEntry);
 			}
 
 			return objectEntryManager.getObjectEntry(

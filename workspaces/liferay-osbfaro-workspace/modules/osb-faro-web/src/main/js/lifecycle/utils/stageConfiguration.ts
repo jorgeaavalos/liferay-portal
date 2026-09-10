@@ -32,32 +32,51 @@ export const STAGE_DESCRIPTIONS: Record<LifecycleStages, string> = {
 	),
 };
 
+export enum MatchLogic {
+	All = 'all',
+	Any = 'any',
+}
+
 export interface IEntityOption {
 	label: string;
 	value: string;
 }
 
-export interface IStageConfig {
+export interface IStageCondition {
 	conditionValue: string | null;
-	description: string;
 	field: string | null;
 	fieldDataCategory: string | null;
 	fieldDataType: string | null;
-	id: string | null;
-	maxTimeDays: number;
-	maxTimeEnabled: boolean;
+	key: string;
 	operator: string | null;
 }
 
+export interface IStageConfig {
+	conditions: IStageCondition[];
+	description: string;
+	id: string | null;
+	matchLogic: MatchLogic;
+	maxTimeDays: number;
+	maxTimeEnabled: boolean;
+}
+
+let conditionCount = 0;
+
+export const createStageCondition = (): IStageCondition => ({
+	conditionValue: null,
+	field: null,
+	fieldDataCategory: null,
+	fieldDataType: null,
+	key: `condition-${++conditionCount}`,
+	operator: null,
+});
+
 export const createDefaultStageConfigs = (): IStageConfig[] =>
 	LIFECYCLE_STAGE_ORDER.map((stageType) => ({
-		conditionValue: null,
+		conditions: [createStageCondition()],
 		description: STAGE_DESCRIPTIONS[stageType],
-		field: null,
-		fieldDataCategory: null,
-		fieldDataType: null,
 		id: null,
+		matchLogic: MatchLogic.All,
 		maxTimeDays: DEFAULT_MAX_DAYS,
 		maxTimeEnabled: true,
-		operator: null,
 	}));

@@ -10,6 +10,8 @@ export interface UserSessionEvent {
 	createDate: string;
 	eventDate: string;
 	eventId: string;
+	experienceId?: string | null;
+	experienceName?: string | null;
 	name: string;
 	pageDescription: string;
 	pageGroupId?: string | null;
@@ -17,6 +19,7 @@ export interface UserSessionEvent {
 	properties: Array<{name: string; value: string}>;
 	referrer: string;
 	url: string;
+	utmProperties: Array<{name: string; value: string}>;
 }
 
 export interface UserSession {
@@ -99,6 +102,8 @@ export default gql`
 						createDate
 						eventDate
 						eventId
+						experienceId
+						experienceName
 						name
 						pageDescription
 						pageGroupId
@@ -110,6 +115,10 @@ export default gql`
 						}
 						referrer
 						url
+						utmProperties {
+							name
+							value
+						}
 					}
 					languageId
 					screenHeight

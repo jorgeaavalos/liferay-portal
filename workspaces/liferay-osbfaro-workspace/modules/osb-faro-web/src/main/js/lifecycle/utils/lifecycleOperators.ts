@@ -1,4 +1,9 @@
-import {IEntityOption, IStageConfig} from 'lifecycle/utils/stageConfiguration';
+import {
+	IEntityOption,
+	IStageCondition,
+	IStageConfig,
+	MatchLogic,
+} from 'lifecycle/utils/stageConfiguration';
 
 export enum Operator {
 	After = 'after',
@@ -25,6 +30,16 @@ export enum OperatorType {
 	Number = 'Number',
 	Text = 'Text',
 }
+
+export const CONNECTOR_LABEL_BY_MATCH_LOGIC: Record<MatchLogic, string> = {
+	[MatchLogic.All]: Liferay.Language.get('and'),
+	[MatchLogic.Any]: Liferay.Language.get('or'),
+};
+
+export const MATCH_LOGIC_OPTIONS: IEntityOption[] = [
+	{label: Liferay.Language.get('all'), value: MatchLogic.All},
+	{label: Liferay.Language.get('any'), value: MatchLogic.Any},
+];
 
 const NUMBER_OPERATORS: IEntityOption[] = [
 	{label: 'is equal to', value: Operator.Equals},
@@ -64,10 +79,40 @@ export const VALUELESS_OPERATORS = new Set<string>([
 	Operator.True,
 ]);
 
+export const isConditionComplete = (condition: IStageCondition): boolean => {
+	if (!condition.field || !condition.operator) {
+		return false;
+	}
+
+	if (VALUELESS_OPERATORS.has(condition.operator)) {
+		return true;
+	}
+
+	const conditionValue = condition.conditionValue?.trim() ?? '';
+
+	if (!conditionValue) {
+		return false;
+	}
+
+	const operatorType = resolveOperatorType(
+		condition.fieldDataCategory,
+		condition.fieldDataType
+	);
+
+	if (
+		operatorType === OperatorType.Duration ||
+		operatorType === OperatorType.Number
+	) {
+		return Number.isFinite(Number(conditionValue));
+	}
+
+	return true;
+};
+
 export const isStageConfigured = (stage: IStageConfig): boolean =>
 	!!stage.description.trim() &&
-	((!!stage.operator && VALUELESS_OPERATORS.has(stage.operator)) ||
-		!!stage.conditionValue);
+	!!stage.conditions.length &&
+	stage.conditions.every(isConditionComplete);
 
 export const resolveOperatorType = (
 	dataCategory: string | null,

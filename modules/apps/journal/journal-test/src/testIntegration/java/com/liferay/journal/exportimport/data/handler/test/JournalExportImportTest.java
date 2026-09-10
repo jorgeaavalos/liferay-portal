@@ -23,8 +23,11 @@ import com.liferay.document.library.kernel.service.DLAppLocalService;
 import com.liferay.dynamic.data.mapping.io.DDMFormDeserializer;
 import com.liferay.dynamic.data.mapping.io.DDMFormDeserializerDeserializeRequest;
 import com.liferay.dynamic.data.mapping.io.DDMFormDeserializerDeserializeResponse;
+import com.liferay.dynamic.data.mapping.model.DDMForm;
+import com.liferay.dynamic.data.mapping.model.DDMFormField;
 import com.liferay.dynamic.data.mapping.model.DDMStructure;
 import com.liferay.dynamic.data.mapping.model.DDMTemplate;
+import com.liferay.dynamic.data.mapping.model.LocalizedValue;
 import com.liferay.dynamic.data.mapping.service.DDMStructureLocalServiceUtil;
 import com.liferay.dynamic.data.mapping.service.DDMTemplateLocalServiceUtil;
 import com.liferay.dynamic.data.mapping.test.util.DDMStructureTestUtil;
@@ -127,6 +130,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -1062,6 +1066,94 @@ public class JournalExportImportTest extends BasePortletExportImportTestCase {
 	}
 
 	@Test
+	@TestInfo("LPS-96545")
+	public void testExportImportStructureDefaultValues() throws Exception {
+		JournalArticle defaultValuesArticle =
+			JournalTestUtil.addArticleDefaultValues(
+				TestPropsValues.getUserId(), group.getGroupId(),
+				RandomTestUtil.randomString());
+
+		DDMStructure ddmStructure = DDMStructureLocalServiceUtil.getStructure(
+			defaultValuesArticle.getDDMStructureId());
+
+		exportImportPortlet(JournalPortletKeys.JOURNAL);
+
+		DDMStructure importedDDMStructure =
+			DDMStructureLocalServiceUtil.getDDMStructureByUuidAndGroupId(
+				ddmStructure.getUuid(), importedGroup.getGroupId());
+
+		JournalArticle importedDefaultValuesArticle =
+			JournalArticleLocalServiceUtil.getArticle(
+				importedGroup.getGroupId(), DDMStructure.class.getName(),
+				importedDDMStructure.getStructureId());
+
+		Assert.assertEquals(
+			defaultValuesArticle.getTitle(),
+			importedDefaultValuesArticle.getTitle());
+		Assert.assertEquals(
+			defaultValuesArticle.getContent(),
+			importedDefaultValuesArticle.getContent());
+
+		DDMForm ddmForm = ddmStructure.getDDMForm();
+
+		Map<String, DDMFormField> ddmFormFieldsMap =
+			ddmForm.getDDMFormFieldsMap(false);
+
+		DDMForm importedDDMForm = importedDDMStructure.getDDMForm();
+
+		Map<String, DDMFormField> importedDDMFormFieldsMap =
+			importedDDMForm.getDDMFormFieldsMap(false);
+
+		for (Map.Entry<String, DDMFormField> entry :
+				ddmFormFieldsMap.entrySet()) {
+
+			DDMFormField ddmFormField = entry.getValue();
+
+			LocalizedValue predefinedValue = ddmFormField.getPredefinedValue();
+
+			DDMFormField importedDDMFormField = importedDDMFormFieldsMap.get(
+				entry.getKey());
+
+			LocalizedValue importedPredefinedValue =
+				importedDDMFormField.getPredefinedValue();
+
+			Assert.assertEquals(
+				predefinedValue.getValues(),
+				importedPredefinedValue.getValues());
+		}
+
+		ServiceContextThreadLocal.pushServiceContext(
+			ServiceContextTestUtil.getServiceContext(
+				importedGroup.getGroupId()));
+
+		JournalArticleLocalServiceUtil.deleteArticleDefaultValues(
+			importedGroup.getGroupId(),
+			importedDefaultValuesArticle.getArticleId(),
+			importedDDMStructure.getStructureId());
+
+		ServiceContextThreadLocal.popServiceContext();
+
+		Assert.assertNull(
+			JournalArticleLocalServiceUtil.fetchLatestArticle(
+				importedDefaultValuesArticle.getResourcePrimKey()));
+
+		importedDDMStructure = DDMStructureLocalServiceUtil.getStructure(
+			importedDDMStructure.getStructureId());
+
+		for (DDMFormField ddmFormField :
+				importedDDMStructure.getDDMFormFields(false)) {
+
+			LocalizedValue predefinedValue = ddmFormField.getPredefinedValue();
+
+			Map<Locale, String> values = predefinedValue.getValues();
+
+			for (String value : values.values()) {
+				Assert.assertEquals(StringPool.BLANK, value);
+			}
+		}
+	}
+
+	@Test
 	public void testExportImportStructuredJournalArticle() throws Exception {
 		exportImportJournalArticle(false);
 	}
@@ -1395,6 +1487,83 @@ public class JournalExportImportTest extends BasePortletExportImportTestCase {
 		liveArticle2Content = liveArticle2.getContent();
 
 		_assertClassPK(liveArticle2Content, liveArticle1.getResourcePrimKey());
+	}
+
+	@Test
+	@TestInfo("LPS-75802")
+	public void testPublishPortletWithImportedStructureDefaultValues()
+		throws Exception {
+
+		JournalArticle defaultValuesArticle =
+			JournalTestUtil.addArticleDefaultValues(
+				TestPropsValues.getUserId(), group.getGroupId(),
+				RandomTestUtil.randomString());
+
+		DDMStructure ddmStructure = DDMStructureLocalServiceUtil.getStructure(
+			defaultValuesArticle.getDDMStructureId());
+
+		JournalArticle article = JournalTestUtil.addArticleWithXMLContent(
+			group.getGroupId(),
+			DDMStructureTestUtil.getSampleStructuredContent(),
+			ddmStructure.getStructureKey(),
+			defaultValuesArticle.getDDMTemplateKey());
+
+		exportPortlet(JournalPortletKeys.JOURNAL, layout);
+
+		_liveGroup = GroupTestUtil.addGroup();
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(_liveGroup.getGroupId());
+
+		Map<String, Serializable> attributes = serviceContext.getAttributes();
+
+		attributes.putAll(
+			ExportImportConfigurationParameterMapFactoryUtil.
+				buildParameterMap());
+
+		StagingLocalServiceUtil.enableLocalStaging(
+			TestPropsValues.getUserId(), _liveGroup, false, false,
+			serviceContext);
+
+		Group stagingGroup = _liveGroup.getStagingGroup();
+
+		Group originalImportedGroup = importedGroup;
+
+		importedGroup = stagingGroup;
+
+		importPortlet(JournalPortletKeys.JOURNAL, layout);
+
+		importedGroup = originalImportedGroup;
+
+		Assert.assertNotNull(
+			JournalArticleLocalServiceUtil.fetchJournalArticleByUuidAndGroupId(
+				article.getUuid(), stagingGroup.getGroupId()));
+
+		Layout liveLayout = LayoutTestUtil.addTypePortletLayout(_liveGroup);
+
+		StagingUtil.publishPortlet(
+			TestPropsValues.getUserId(), stagingGroup.getGroupId(),
+			_liveGroup.getGroupId(), importedLayout.getPlid(),
+			liveLayout.getPlid(), JournalPortletKeys.JOURNAL,
+			ExportImportConfigurationParameterMapFactoryUtil.
+				buildParameterMap());
+
+		Assert.assertNotNull(
+			JournalArticleLocalServiceUtil.fetchJournalArticleByUuidAndGroupId(
+				article.getUuid(), _liveGroup.getGroupId()));
+
+		DDMStructure liveDDMStructure =
+			DDMStructureLocalServiceUtil.getDDMStructureByUuidAndGroupId(
+				ddmStructure.getUuid(), _liveGroup.getGroupId());
+
+		JournalArticle liveDefaultValuesArticle =
+			JournalArticleLocalServiceUtil.getArticle(
+				_liveGroup.getGroupId(), DDMStructure.class.getName(),
+				liveDDMStructure.getStructureId());
+
+		Assert.assertEquals(
+			defaultValuesArticle.getContent(),
+			liveDefaultValuesArticle.getContent());
 	}
 
 	@Override

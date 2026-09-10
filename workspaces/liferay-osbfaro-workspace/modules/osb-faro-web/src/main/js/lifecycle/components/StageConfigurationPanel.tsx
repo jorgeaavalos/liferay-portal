@@ -1,54 +1,31 @@
-import ClayButton, {ClayButtonWithIcon} from '@clayui/button';
-import ClayDatePicker from '@clayui/date-picker';
+import ClayButton from '@clayui/button';
 import ClayPopover from '@clayui/popover';
-import getCN from 'classnames';
 import Label from '@clayui/label';
-import moment from 'moment';
 import Panel from '@clayui/panel';
-import React, {useState} from 'react';
+import React from 'react';
+import StageConditionRow from 'lifecycle/components/StageConditionRow';
 import ClayForm, {ClayInput, ClayToggle} from '@clayui/form';
-import {DEFAULT_DATE_FORMAT, getDateNow} from 'shared/util/date';
-import {getCatalogFieldLabel, ICatalogField} from 'shared/api/catalog';
+import PickerTriggerButton from 'shared/components/PickerTriggerButton';
+import {ClayButtonWithIcon} from '@clayui/button';
+import {ICatalogField} from 'shared/api/catalog';
 import {Icon, Option, Picker, Text} from '@clayui/core';
-import {IStageConfig} from 'lifecycle/utils/stageConfiguration';
+import {
+	createStageCondition,
+	IStageCondition,
+	IStageConfig,
+	MatchLogic,
+} from 'lifecycle/utils/stageConfiguration';
+import {
+	CONNECTOR_LABEL_BY_MATCH_LOGIC,
+	MATCH_LOGIC_OPTIONS,
+	isStageConfigured,
+} from 'lifecycle/utils/lifecycleOperators';
 import {
 	LifecycleStages,
 	lifecycleStagesLabelMap,
 } from 'contacts/pages/account/utils/constants';
-import {
-	OPERATORS_BY_TYPE,
-	OperatorType,
-	VALUELESS_OPERATORS,
-	isStageConfigured,
-	resolveOperatorType,
-} from 'lifecycle/utils/lifecycleOperators';
+import {removeAtIndex} from 'shared/util/array';
 import {sub} from 'shared/util/lang';
-
-interface IPickerTriggerButtonProps
-	extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-	buttonClassName?: string;
-	label: string;
-}
-
-const PickerTriggerButton = React.forwardRef<
-	HTMLButtonElement,
-	IPickerTriggerButtonProps
->(({buttonClassName, label, ...rest}, ref) => (
-	<ClayButton
-		{...rest}
-		className={getCN('rounded-lg', buttonClassName)}
-		displayType="secondary"
-		ref={ref}
-		size="sm"
-	>
-		{label}
-
-		<Icon className="inline-item inline-item-after" symbol="caret-double" />
-	</ClayButton>
-));
-
-const selectPlaceholder = (label: string) =>
-	sub(Liferay.Language.get('select-x'), [label]) as string;
 
 interface IStageConfigurationPanelProps {
 	defaultExpanded?: boolean;
@@ -67,167 +44,36 @@ const StageConfigurationPanel: React.FC<IStageConfigurationPanelProps> = ({
 	stageType,
 	value,
 }) => {
-	const [dateExpanded, setDateExpanded] = useState(false);
+	const {conditions, matchLogic} = value;
 
-	const resolvedType = resolveOperatorType(
-		value.fieldDataCategory,
-		value.fieldDataType
-	);
+	const updateCondition = (
+		conditionIndex: number,
+		patch: Partial<IStageCondition>
+	) =>
+		onChange({
+			...value,
+			conditions: conditions.map((current, currentIndex) =>
+				currentIndex === conditionIndex
+					? {...current, ...patch}
+					: current
+			),
+		});
 
-	const isValuelessOperator =
-		!!value.operator && VALUELESS_OPERATORS.has(value.operator);
+	const addCondition = () =>
+		onChange({
+			...value,
+			conditions: [...conditions, createStageCondition()],
+		});
+
+	const removeCondition = (conditionIndex: number) =>
+		onChange({
+			...value,
+			conditions: removeAtIndex(conditions, conditionIndex),
+		});
 
 	const configured = isStageConfigured(value);
 
-	const operatorOptions = resolvedType ? OPERATORS_BY_TYPE[resolvedType] : [];
-
-	const renderFieldPicker = () => {
-		const selectedField = fields.find(
-			(field) => field.name === value.field
-		);
-
-		const selectableFields = fields.filter((field) =>
-			resolveOperatorType(field.dataCategory, field.dataType)
-		);
-
-		return (
-			<Picker
-				aria-label={selectPlaceholder(Liferay.Language.get('field'))}
-				as={PickerTriggerButton}
-				items={selectableFields
-					.map((field) => ({
-						isCalculated: !!field.parentField,
-						label: getCatalogFieldLabel(field),
-						value: field.name,
-					}))
-					.sort((a, b) => a.label.localeCompare(b.label))}
-				label={
-					selectedField
-						? getCatalogFieldLabel(selectedField)
-						: selectPlaceholder(Liferay.Language.get('field'))
-				}
-				onSelectionChange={(key) => {
-					const field = fields.find(
-						(catalogField) => catalogField.name === String(key)
-					);
-
-					onChange({
-						...value,
-						conditionValue: null,
-						field: String(key),
-						fieldDataCategory: field?.dataCategory ?? null,
-						fieldDataType: field?.dataType ?? null,
-						operator: null,
-					});
-				}}
-				searchable
-				selectedKey={value.field ?? undefined}
-			>
-				{(item) => (
-					<Option key={item.value} textValue={item.label}>
-						{item.isCalculated ? (
-							<span className="align-items-center c-gap-2 d-flex">
-								{item.label}
-
-								<Label
-									className="my-0"
-									displayType="secondary"
-									inverse
-								>
-									{Liferay.Language.get('calculated-field')}
-								</Label>
-							</span>
-						) : (
-							item.label
-						)}
-					</Option>
-				)}
-			</Picker>
-		);
-	};
-
-	const renderOperatorPicker = () => {
-		const selectedOperator = operatorOptions.find(
-			(option) => option.value === value.operator
-		);
-
-		return (
-			<Picker
-				aria-label={selectPlaceholder(Liferay.Language.get('operator'))}
-				as={PickerTriggerButton}
-				items={operatorOptions}
-				label={
-					selectedOperator
-						? selectedOperator.label
-						: selectPlaceholder(Liferay.Language.get('operator'))
-				}
-				onSelectionChange={(key) =>
-					onChange({
-						...value,
-						conditionValue: null,
-						operator: String(key),
-					})
-				}
-				searchable
-				selectedKey={value.operator ?? undefined}
-			>
-				{(item) => <Option key={item.value}>{item.label}</Option>}
-			</Picker>
-		);
-	};
-
-	const renderValueInput = () => {
-		if (resolvedType === OperatorType.Date) {
-			const today = getDateNow();
-
-			const minDate = today.clone().subtract(1, 'year');
-			const maxDate = today.clone().add(1, 'year');
-
-			return (
-				<ClayDatePicker
-					className="form-control-sm"
-					dateFormat="yyyy-MM-dd"
-					expanded={dateExpanded}
-					max={maxDate.format(DEFAULT_DATE_FORMAT)}
-					min={minDate.format(DEFAULT_DATE_FORMAT)}
-					months={moment.months()}
-					onChange={(conditionValue) =>
-						onChange({...value, conditionValue})
-					}
-					onExpandedChange={setDateExpanded}
-					placeholder={Liferay.Language.get('yyyy-mm-dd')}
-					value={value.conditionValue ?? ''}
-					weekdaysShort={moment.weekdaysShort()}
-					years={{
-						end: maxDate.year(),
-						start: minDate.year(),
-					}}
-				/>
-			);
-		}
-
-		const type =
-			resolvedType === OperatorType.Number ||
-			resolvedType === OperatorType.Duration
-				? 'number'
-				: 'text';
-
-		return (
-			<ClayInput
-				aria-label={Liferay.Language.get('value')}
-				className="w-auto"
-				onChange={(event) =>
-					onChange({
-						...value,
-						conditionValue: event.target.value,
-					})
-				}
-				sizing="sm"
-				type={type}
-				value={value.conditionValue ?? ''}
-			/>
-		);
-	};
+	const connectorLabel = CONNECTOR_LABEL_BY_MATCH_LOGIC[matchLogic];
 
 	return (
 		<Panel
@@ -288,18 +134,88 @@ const StageConfigurationPanel: React.FC<IStageConfigurationPanelProps> = ({
 					{Liferay.Language.get('trigger')}
 				</div>
 
-				<div className="align-items-center c-gap-2 d-flex mb-4">
-					<Text size={3} weight="semi-bold">
-						{Liferay.Language.get('account')}
-					</Text>
+				<div className="border mb-4 overflow-hidden rounded">
+					<div className="align-items-center border-bottom c-gap-2 d-flex p-3 stage-configuration-panel__match text-secondary">
+						{sub(
+							Liferay.Language.get(
+								'x-of-these-criteria-must-be-met'
+							),
+							[
+								<Picker
+									aria-label={Liferay.Language.get(
+										'match-logic'
+									)}
+									as={PickerTriggerButton}
+									disabled={conditions.length < 2}
+									items={MATCH_LOGIC_OPTIONS}
+									key="matchLogic"
+									label={
+										matchLogic === MatchLogic.Any
+											? Liferay.Language.get('any')
+											: Liferay.Language.get('all')
+									}
+									onSelectionChange={(key) =>
+										onChange({
+											...value,
+											matchLogic: key as MatchLogic,
+										})
+									}
+									selectedKey={matchLogic}
+									size="xs"
+								>
+									{(item) => (
+										<Option key={item.value}>
+											{item.label}
+										</Option>
+									)}
+								</Picker>,
+							],
+							false
+						)}
+					</div>
 
-					{renderFieldPicker()}
+					<div className="p-3">
+						{conditions.map((condition, conditionIndex) => (
+							<React.Fragment key={condition.key}>
+								{conditionIndex > 0 && (
+									<div className="font-weight-semi-bold my-2 text-secondary text-uppercase">
+										{connectorLabel}
+									</div>
+								)}
 
-					{value.field && renderOperatorPicker()}
+								<StageConditionRow
+									condition={condition}
+									fields={fields}
+									index={conditionIndex + 1}
+									onChange={(patch) =>
+										updateCondition(conditionIndex, patch)
+									}
+									onRemove={
+										conditionIndex > 0
+											? () =>
+													removeCondition(
+														conditionIndex
+													)
+											: undefined
+									}
+								/>
+							</React.Fragment>
+						))}
 
-					{value.operator &&
-						!isValuelessOperator &&
-						renderValueInput()}
+						<ClayButton
+							className="mt-3"
+							displayType="secondary"
+							onClick={addCondition}
+							size="xs"
+						>
+							<Icon
+								className="inline-item inline-item-before"
+								symbol="plus"
+							/>
+
+							{Liferay.Language.get('add-trigger')}
+						</ClayButton>
+					</div>
 				</div>
 
 				<div className="align-items-center d-flex font-weight-semi-bold mb-2">

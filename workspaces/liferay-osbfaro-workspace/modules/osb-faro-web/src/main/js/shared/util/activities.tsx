@@ -65,6 +65,7 @@ export type VerticalTimelineHeader = {
 export type VerticalTimelinePageGroup = {
 	campaign?: TimelineCampaign;
 	descriptionUrl?: string;
+	experienceNames?: string[];
 	nestedItems: SessionEvent[];
 	pageGroup: true;
 	subtitle: string;
@@ -196,6 +197,17 @@ export const getEventCampaign = ({
 	campaignId ? {campaignId, campaignName: campaignName ?? null} : undefined;
 
 /**
+ * Turns one of the name/value lists an event carries into the object the
+ * timeline expands into a table. Each list keeps its own entry in the payload
+ * rather than being merged into one, so the table a parameter lands in is the
+ * API's own classification.
+ */
+const toAttributeMap = (
+	attributes: Array<{name: string; value: string}>
+): Record<string, string> =>
+	Object.fromEntries(attributes.map(({name, value}) => [name, value]));
+
+/**
  * Formats UserSessions events and maps its attributes to the required to be used in VerticalTimeline component.
  * @param {Array} events Array of UserSessions events.
  * @returns {Array.<Object>} Array of objects for a vertical timeline.
@@ -215,9 +227,12 @@ export const formatEvents = (
 			createDate,
 			eventDate,
 			eventId,
+			experienceId,
+			experienceName,
 			name,
 			pageTitle,
 			properties,
+			utmProperties,
 		} = event;
 
 		const campaign = getEventCampaign(event);
@@ -227,13 +242,13 @@ export const formatEvents = (
 				applicationId,
 				...(eventDate && {eventDate}),
 				eventId,
+				...(experienceId && {experienceId}),
+				...(experienceName && {experienceName}),
 				...(properties?.length && {
-					properties: Object.fromEntries(
-						properties.map(({name: propName, value}) => [
-							propName,
-							value,
-						])
-					),
+					properties: toAttributeMap(properties),
+				}),
+				...(utmProperties?.length && {
+					utmProperties: toAttributeMap(utmProperties),
 				}),
 			},
 			...(campaign && {campaign}),
@@ -325,6 +340,18 @@ export const groupEventsByPage = (
 
 		const pageEvent = pageEvents[pageEventIndex] ?? pageEvents[0];
 
+		const experienceNames = Array.from(
+			new Set(
+				pageEvents
+					.map(({experienceId, experienceName}) =>
+						experienceId && experienceId !== 'DEFAULT'
+							? experienceName || experienceId
+							: undefined
+					)
+					.filter((name): name is string => !!name)
+			)
+		);
+
 		const subtitle = getSafeDecodedURIComponent(pageKey);
 
 		// formatEvents already builds a descriptionUrl for every event,
@@ -351,6 +378,7 @@ export const groupEventsByPage = (
 				descriptionUrl:
 					formattedPageEvents[Math.max(pageEventIndex, 0)]
 						.descriptionUrl,
+				...(experienceNames.length && {experienceNames}),
 
 				// The page group's own subtitle and campaign label already show
 				// the page URL and the touch it came from, so its nested

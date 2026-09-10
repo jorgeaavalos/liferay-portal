@@ -139,6 +139,17 @@ describe('VerticalTimeline', () => {
 			).toHaveTextContent('Session Attributes');
 		});
 
+		it('titles the attributes table with the header, instead of listing it as an attribute', () => {
+			const {container} = renderTimeline({items: [SESSION_ITEM]});
+
+			fireEvent.click(container.querySelector('.session-row .row-main'));
+
+			expect(
+				container.querySelector('.payload-table-title')
+			).toHaveTextContent('Session Attributes');
+			expect(screen.queryByText('header')).not.toBeInTheDocument();
+		});
+
 		it('always shows its pages, without needing to expand', () => {
 			renderTimeline({
 				items: [
@@ -283,6 +294,76 @@ describe('VerticalTimeline', () => {
 
 			expect(screen.getByText('pageViewed')).toBeInTheDocument();
 		});
+
+		it('does not show the experience label when the page carries no experience data', () => {
+			renderTimeline({items: [PAGE_ITEM]});
+
+			expect(screen.queryByText('Experience')).not.toBeInTheDocument();
+		});
+
+		it('does not show the experience label when experienceNames is empty', () => {
+			renderTimeline({items: [{...PAGE_ITEM, experienceNames: []}]});
+
+			expect(screen.queryByText('Experience')).not.toBeInTheDocument();
+		});
+
+		it('shows the experience label when the page was served by a non-default experience', () => {
+			renderTimeline({
+				items: [
+					{...PAGE_ITEM, experienceNames: ['Q3 Promo Experience']}
+				]
+			});
+
+			expect(screen.getByText('Experience')).toBeInTheDocument();
+		});
+
+		it('names the experience in the label\'s tooltip', () => {
+			renderTimeline({
+				items: [
+					{...PAGE_ITEM, experienceNames: ['Q3 Promo Experience']}
+				]
+			});
+
+			expect(
+				screen.getByText('Experience').closest('.experience-label-root')
+			).toHaveAttribute('title', 'Q3 Promo Experience');
+		});
+
+		it('lists every distinct experience in the tooltip, one per line', () => {
+			renderTimeline({
+				items: [
+					{
+						...PAGE_ITEM,
+						experienceNames: [
+							'Q3 Promo Experience',
+							'Winter Sale Experience'
+						]
+					}
+				]
+			});
+
+			expect(
+				screen.getByText('Experience').closest('.experience-label-root')
+			).toHaveAttribute(
+				'title',
+				'Q3 Promo Experience\nWinter Sale Experience'
+			);
+		});
+
+		it('shows the experience label alongside the event count, not on a nested event', () => {
+			const {container} = renderTimeline({
+				items: [
+					{...PAGE_ITEM, experienceNames: ['Q3 Promo Experience']}
+				]
+			});
+
+			expect(
+				container.querySelector('.row-metrics .event-count-pill')
+			).toBeInTheDocument();
+			expect(
+				container.querySelector('.row-metrics .experience-label')
+			).toBeInTheDocument();
+		});
 	});
 
 	describe('event row', () => {
@@ -331,6 +412,46 @@ describe('VerticalTimeline', () => {
 			expect(
 				container.querySelector('.attributes-payload')
 			).toHaveTextContent('HubSpot');
+		});
+
+		it('lays the attributes out as a property and value table', () => {
+			const {container} = renderTimeline({items: [EVENT_ITEM]});
+
+			fireEvent.click(container.querySelector('.event-row .row-main'));
+
+			expect(screen.getByText('Property')).toBeInTheDocument();
+			expect(screen.getByText('Value')).toBeInTheDocument();
+
+			expect(
+				screen.getByText('applicationId').closest('tr')
+			).toHaveTextContent('HubSpot');
+		});
+
+		it('shows the acquisition parameters in a table of their own', () => {
+			const {container} = renderTimeline({
+				items: [
+					{
+						...EVENT_ITEM,
+						attributes: {
+							...EVENT_ITEM.attributes,
+							utmProperties: {utm_medium: 'email'}
+						}
+					}
+				]
+			});
+
+			fireEvent.click(container.querySelector('.event-row .row-main'));
+
+			const [attributesTable, utmTable] =
+				container.querySelectorAll('.payload-table');
+
+			expect(attributesTable).toHaveTextContent('Event Attributes');
+			expect(attributesTable).not.toHaveTextContent('utm_medium');
+
+			expect(utmTable).toHaveTextContent('UTM Parameters');
+			expect(
+				screen.getByText('utm_medium').closest('tr')
+			).toHaveTextContent('email');
 		});
 	});
 });
