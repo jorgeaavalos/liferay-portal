@@ -5,7 +5,7 @@ import {
 	groupEventsByPage,
 	groupSessionsByDay,
 	isWebhookUserAgent,
-	VerticalTimelineHeader,
+	TimelineDay,
 	VerticalTimelineIndividual,
 	VerticalTimelineSession,
 } from 'shared/util/activities';
@@ -26,7 +26,7 @@ const ANONYMOUS_KEY = '__anonymous__';
  * two ids is available.
  */
 const getIndividual = (
-	{individualId, userId, userName}: AccountUserSession,
+	{individualId, jobTitle, userId, userName}: AccountUserSession,
 	{channelId, groupId}: EventDashboardContext
 ): VerticalTimelineIndividual => {
 	const isAnonymous = !individualId;
@@ -49,6 +49,7 @@ const getIndividual = (
 				}),
 			}),
 		isAnonymous,
+		...(jobTitle && {jobTitle}),
 	};
 };
 
@@ -96,19 +97,10 @@ const toSessionItem = (
 export const formatAccountSessions = (
 	sessions: AccountUserSession[] = [],
 	context: EventDashboardContext = {}
-): (
-	| VerticalTimelineHeader
-	| VerticalTimelineIndividual
-	| VerticalTimelineSession
-)[] => {
-	const items: (
-		| VerticalTimelineHeader
-		| VerticalTimelineIndividual
-		| VerticalTimelineSession
-	)[] = [];
-
-	groupSessionsByDay(sessions).forEach(({daySessions, header}) => {
-		items.push(header);
+): TimelineDay[] =>
+	groupSessionsByDay(sessions).map(({date, daySessions, header}) => {
+		const items: (VerticalTimelineIndividual | VerticalTimelineSession)[] =
+			[];
 
 		const sessionsByIndividual = groupBy(
 			daySessions,
@@ -126,9 +118,8 @@ export const formatAccountSessions = (
 				items.push(toSessionItem(session, context))
 			);
 		});
-	});
 
-	return items;
-};
+		return {date, header, items};
+	});
 
 export default formatAccountSessions;

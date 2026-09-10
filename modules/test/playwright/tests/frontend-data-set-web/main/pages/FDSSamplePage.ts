@@ -60,6 +60,11 @@ export class FDSSamplePage {
 		itemsPerPageSelector: Locator;
 	};
 	readonly resubmitButton: Locator;
+	readonly searchSuggestions: {
+		clearAllButton: Locator;
+		entries: Locator;
+		menu: Locator;
+	};
 	readonly sidePanel: Locator;
 	readonly sidePanelFrame: FrameLocator;
 	readonly selectAllCheckbox: Locator;
@@ -185,6 +190,18 @@ export class FDSSamplePage {
 		};
 
 		this.resubmitButton = page.getByRole('button', {name: 'Resubmit'});
+
+		const searchSuggestionsMenu = page.locator('.fds-search-suggestions');
+
+		this.searchSuggestions = {
+			clearAllButton: searchSuggestionsMenu.getByRole('button', {
+				name: 'Clear All',
+			}),
+			entries: searchSuggestionsMenu.locator(
+				'.fds-search-suggestions-item'
+			),
+			menu: searchSuggestionsMenu,
+		};
 
 		this.selectAllCheckbox = page.getByText('Select All');
 
@@ -349,6 +366,24 @@ export class FDSSamplePage {
 		return this.activeFiltersToolbar.container
 			.getByRole('button')
 			.filter({hasText: new RegExp(`^${label}:`)});
+	}
+
+	searchSuggestionEntry(query: string) {
+		return this.searchSuggestions.menu.getByRole('menuitem', {
+			exact: true,
+			name: query,
+		});
+	}
+
+	searchSuggestionRemoveButton(query: string) {
+		return this.searchSuggestions.entries
+			.filter({
+				has: this.page.getByRole('menuitem', {
+					exact: true,
+					name: query,
+				}),
+			})
+			.getByRole('menuitem', {name: 'Clear Search'});
 	}
 
 	async search(value: string) {

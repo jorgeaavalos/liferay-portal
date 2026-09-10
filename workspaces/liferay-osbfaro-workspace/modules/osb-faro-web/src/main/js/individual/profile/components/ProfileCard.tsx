@@ -1,14 +1,15 @@
 import ActivitiesChart from 'contacts/components/ActivitiesChart';
+import ActivitySectionEmptyState from 'shared/components/ActivitySectionEmptyState';
 import Card from 'shared/components/Card';
 import ClayButton from '@clayui/button';
 import ClayLink from '@clayui/link';
+import DayList from 'shared/components/DayList';
 import EventMetricQuery, {
 	EventMetricsData,
 	EventMetricsVariables,
 } from 'shared/queries/EventMetricQuery';
 import IntervalSelector from 'shared/components/IntervalSelector';
 import Loading from 'shared/components/Loading';
-import moment from 'moment';
 import NoResultsDisplay from 'shared/components/NoResultsDisplay';
 import React, {useState} from 'react';
 import SearchInput from 'shared/components/SearchInput';
@@ -18,7 +19,6 @@ import UserSessionQuery, {
 	UserSessionData,
 	UserSessionVariables,
 } from 'shared/queries/UserSessionQuery';
-import VerticalTimeline from 'shared/components/VerticalTimeline';
 import {compose, withPaginationBar} from 'shared/hoc';
 import {
 	DEFAULT_DATE_FORMAT,
@@ -29,7 +29,11 @@ import {
 } from 'shared/util/date';
 import {DropdownRangeKey} from 'shared/components/dropdown-range-key/DropdownRangeKey';
 import {fetchPolicyDefinition} from 'shared/util/graphql';
-import {formatSessions, getActivityLabel} from 'shared/util/activities';
+import {
+	formatSessions,
+	getActivityLabel,
+	mapEventMetricToActivityHistory,
+} from 'shared/util/activities';
 import {getSafeRangeSelectors} from 'shared/util/util';
 import {Individual} from 'shared/util/records';
 import {Interval, RangeSelectors, SafeRangeSelectors} from 'shared/types';
@@ -41,7 +45,6 @@ import {
 	SessionEntityTypes,
 	Sizes,
 } from 'shared/util/constants';
-import {sub} from 'shared/util/lang';
 import {useLDPEnabled} from 'shared/hooks/useLDPEnabled';
 import {useQuery} from '@apollo/client';
 import {useSelectedPoint} from 'shared/hooks/useSelectedPoint';
@@ -57,12 +60,12 @@ const formatTimestamp = (timestamp: number) => {
 	return `${hours}:${minutes}:${seconds}`;
 };
 
-const PaginatedVerticalTimeline = compose<any>(
+const PaginatedDayList = compose<any>(
 	withPaginationBar(),
 	withLoading(),
 	withError({page: false}),
 	withEmpty()
-)(VerticalTimeline);
+)(DayList);
 
 interface IProfileCardProps extends React.HTMLAttributes<HTMLElement> {
 	channelId: string;
@@ -127,16 +130,7 @@ const ProfileCard: React.FC<IProfileCardProps> = ({
 		refetch,
 		total: activityTotal,
 	} = mapListResultsToProps(activityResponse, ({eventMetric}) => ({
-		items: eventMetric.totalEventsMetric.histogram.metrics?.map(
-			({key, value}, index: number) => ({
-				intervalInitDate: moment.utc(key).valueOf(),
-				totalEvents: value,
-				totalSessions:
-					eventMetric?.totalSessionsMetric?.histogram?.metrics?.[
-						index
-					].value,
-			})
-		),
+		items: mapEventMetricToActivityHistory(eventMetric),
 		total: eventMetric.totalEventsMetric?.value,
 	}));
 
@@ -354,19 +348,9 @@ const ProfileCard: React.FC<IProfileCardProps> = ({
 
 					<div className="selected-info">
 						<div className="activities-date d-flex align-items-baseline">
-							<div className="h4">
-								{activityHistory?.length
-									? sub(
-											Liferay.Language.get(
-												'individuals-events-x'
-											),
-
-											[date]
-										)
-									: Liferay.Language.get(
-											'individuals-events'
-										)}
-							</div>
+							{!!activityHistory?.length && (
+								<div className="h4">{date}</div>
+							)}
 
 							{selected && (
 								<ClayButton
@@ -401,15 +385,29 @@ const ProfileCard: React.FC<IProfileCardProps> = ({
 				total={sessionsMappedResults.total as number}
 			/>
 
-			<PaginatedVerticalTimeline
+			<PaginatedDayList
 				{...sessionsMappedResults}
 				delta={delta}
+				emptyState={
+					<ActivitySectionEmptyState
+						linkHref={URLConstants.IndividualProfilesDocument}
+						linkLabel={Liferay.Language.get(
+							'learn-more-about-individuals'
+						)}
+					/>
+				}
 				initialExpanded={false}
 				LDPEnabled={LDPEnabled}
 				noResultsRenderer={renderNoResults()}
 				onDeltaChange={onDeltaChange}
 				onPageChange={onPageChange}
 				page={page}
+				resultsMessagePlural={Liferay.Language.get(
+					'showing-x-to-x-of-x-page-entries'
+				)}
+				resultsMessageSingular={Liferay.Language.get(
+					'showing-x-to-x-of-x-page-entry'
+				)}
 				timeZoneId={timeZoneId}
 			/>
 		</WrapSafeResults>

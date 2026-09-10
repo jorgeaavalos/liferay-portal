@@ -4,10 +4,15 @@ import {DEFAULT_ACTIVITY_MAX} from 'shared/api/activities';
 import getEventDashboardUrl, {
 	EventDashboardContext,
 } from './getEventDashboardUrl';
-import {getCustomDateFormat} from 'shared/util/date';
+import {
+	DEFAULT_DATE_FORMAT,
+	formatUTCDate,
+	getCustomDateFormat,
+} from 'shared/util/date';
 import {getSafeDecodedURIComponent} from './util';
 import {AssetTypes, TimeIntervals} from 'shared/util/constants';
 import {RangeSelectors} from 'shared/types';
+import {Routes, toRoute} from 'shared/util/router';
 import {sub} from 'shared/util/lang';
 import {toLocale} from 'shared/util/numbers';
 import {UserSession, UserSessionEvent} from 'shared/queries/UserSessionQuery';
@@ -59,7 +64,7 @@ export type UserSessionAttributes = {
 export type VerticalTimelineHeader = {
 	header: true;
 	title: string;
-	totalEvents: number;
+	totalEvents?: number;
 };
 
 export type VerticalTimelinePageGroup = {
@@ -101,28 +106,52 @@ export type VerticalTimelineIndividual = {
 	individualName: string;
 	individualUrl?: string;
 	isAnonymous: boolean;
+	jobTitle?: string;
 };
 
 /**
  * Every row shape the shared VerticalTimeline component can render. A
  * discriminated union — each variant carries its own literal-`true` tag
- * (`header`, `individual`, `session`, `pageGroup`), except `SessionEvent`,
- * the fallback case once the other four are ruled out.
+ * (`individual`, `session`, `pageGroup`), except `SessionEvent`, the fallback
+ * case once the other three are ruled out.
  */
 export type VerticalTimelineItem =
-	| VerticalTimelineHeader
 	| VerticalTimelineIndividual
 	| VerticalTimelineSession
 	| VerticalTimelinePageGroup
 	| SessionEvent;
 
+export type CampaignTouchMember = {
+	individualId: string | null;
+	individualName: string;
+	jobTitle: string | null;
+	status: string;
+};
+
+export type CampaignTouch = {
+	campaignId: string;
+	campaignName: string;
+	dataSourceType: string;
+	touches: CampaignTouchMember[];
+};
+
+export type TimelineDay = {
+	date: string;
+	header: VerticalTimelineHeader;
+	items: VerticalTimelineItem[];
+};
+
 export interface ActivityHistoryPoint {
 	intervalInitDate: number;
+	totalCampaignResponses?: number;
 	totalEvents: number;
 	totalSessions?: number;
 }
 
 interface EventMetricLike {
+	totalCampaignActivitiesMetric?: {
+		histogram?: {metrics?: Array<{value: number}>};
+	};
 	totalEventsMetric: {
 		histogram: {metrics?: Array<{key: string; value: number}>};
 	};
@@ -142,6 +171,9 @@ export const mapEventMetricToActivityHistory = (
 	eventMetric.totalEventsMetric.histogram.metrics?.map(
 		({key, value}, index) => ({
 			intervalInitDate: moment.utc(key).valueOf(),
+			totalCampaignResponses:
+				eventMetric?.totalCampaignActivitiesMetric?.histogram
+					?.metrics?.[index]?.value,
 			totalEvents: value,
 			totalSessions:
 				eventMetric?.totalSessionsMetric?.histogram?.metrics?.[index]
@@ -448,6 +480,94 @@ export const groupBy = <T,>(
 	return grouped;
 };
 
+export const toDayKey = (datetime: Date | string | number): string =>
+	formatUTCDate(datetime, DEFAULT_DATE_FORMAT);
+
+export const buildTouchIndividualUrls = (
+	campaignDays: Record<
+		string,
+		{campaigns: Array<{touches: Array<{individualId: string | null}>}>}
+	> = {},
+	{channelId, groupId}: EventDashboardContext = {}
+): Record<string, string> => {
+	if (!channelId || !groupId) {
+		return {};
+	}
+
+	return Object.values(campaignDays).reduce<Record<string, string>>(
+		(urls, {campaigns}) => {
+			campaigns.forEach(({touches}) =>
+				touches.forEach(({individualId}) => {
+					if (individualId) {
+						urls[individualId] = toRoute(
+							Routes.CONTACTS_INDIVIDUAL,
+							{channelId, groupId, id: individualId}
+						);
+					}
+				})
+			);
+
+			return urls;
+		},
+		{}
+	);
+};
+
+export const mergeCampaignDays = (
+	days: TimelineDay[],
+	campaignDays: Record<string, {campaigns: unknown[]}> = {},
+	{
+		isFirstPage = true,
+		isLastPage = true,
+	}: {isFirstPage?: boolean; isLastPage?: boolean} = {}
+): TimelineDay[] => {
+	const dayKeys = days.map(({date}) => toDayKey(date));
+
+	const sessionDayKeys = new Set(dayKeys);
+
+	const newestDayKey = dayKeys[0];
+
+	const oldestDayKey = dayKeys[dayKeys.length - 1];
+
+	const ownsDay = (dayKey: string) => {
+		if (!dayKeys.length) {
+			return isFirstPage && isLastPage;
+		}
+
+		return (
+			(isFirstPage || dayKey <= newestDayKey) &&
+			(isLastPage || dayKey >= oldestDayKey)
+		);
+	};
+
+	const campaignOnlyDays = Object.entries(campaignDays)
+		.filter(
+			([dayKey, {campaigns}]) =>
+				campaigns.length &&
+				!sessionDayKeys.has(dayKey) &&
+				ownsDay(dayKey)
+		)
+		.map(([dayKey]) => {
+			const date = moment.utc(dayKey).startOf('day').format();
+
+			return {
+				date,
+				header: {
+					header: true as const,
+					title: formatGroupingTime(date),
+				},
+				items: [],
+			};
+		});
+
+	// Every date here is a UTC ISO string of the same fixed shape, so string
+	// order matches chronological order. ownsDay above already relies on that.
+
+	return [...days, ...campaignOnlyDays].sort((a, b) =>
+		b.date.localeCompare(a.date)
+	);
+};
+
 /**
  * Groups sessions by the day they started, newest day first, and emits a day
  * header followed by that day's sessions. Shared by the account and individual
@@ -457,7 +577,7 @@ export const groupSessionsByDay = <
 	T extends {createDate: string; events?: unknown[] | null},
 >(
 	sessions: T[]
-): {daySessions: T[]; header: VerticalTimelineHeader}[] => {
+): {date: string; daySessions: T[]; header: VerticalTimelineHeader}[] => {
 	const sessionsByDay = groupBy(sessions, (session) =>
 		moment.utc(session.createDate).startOf('day').format()
 	);
@@ -468,6 +588,7 @@ export const groupSessionsByDay = <
 			const daySessions = sessionsByDay.get(dayKey) ?? [];
 
 			return {
+				date: dayKey,
 				daySessions: daySessions.sort(
 					(a, b) =>
 						moment(b.createDate).valueOf() -
@@ -489,16 +610,14 @@ export const groupSessionsByDay = <
  * Formats individual user sessions for the shared VerticalTimeline, grouping
  * them by day and grouping each session's events by the page they happened on.
  * The individual stream has no per-user level — the individual is the page's
- * subject — so a day header is followed straight by that day's sessions.
+ * subject — so a day holds its sessions directly.
  */
 export const formatSessions = (
 	sessions: UserSession[] = [],
 	context: EventDashboardContext = {}
-): (VerticalTimelineHeader | VerticalTimelineSession)[] => {
-	const items: (VerticalTimelineHeader | VerticalTimelineSession)[] = [];
-
-	groupSessionsByDay(sessions).forEach(({daySessions, header}) => {
-		items.push(header);
+): TimelineDay[] =>
+	groupSessionsByDay(sessions).map(({date, daySessions, header}) => {
+		const items: VerticalTimelineSession[] = [];
 
 		daySessions.forEach((session) => {
 			const events = (session.events ??
@@ -532,10 +651,9 @@ export const formatSessions = (
 				userAgent: session.userAgent,
 			});
 		});
-	});
 
-	return items;
-};
+		return {date, header, items};
+	});
 
 /**
  * Helper function get the correct pluralization of count label.
