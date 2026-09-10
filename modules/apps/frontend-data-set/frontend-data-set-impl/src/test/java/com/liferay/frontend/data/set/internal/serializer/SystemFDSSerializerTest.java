@@ -1231,6 +1231,40 @@ public class SystemFDSSerializerTest extends BaseFDSSerializerTestCase {
 	}
 
 	@Test
+	public void testSerializeSearchSuggestionsEnabled() throws Exception {
+		_registerServices(
+			_registerSystemFDSEntry(
+				SystemFDSEntryFactory.create(
+					FDS_NAMES[0]
+				).withSearchSuggestionsEnabled(
+					false
+				)),
+			_registerSystemFDSEntry(
+				SystemFDSEntryFactory.create(
+					FDS_NAMES[1]
+				).withSearchSuggestionsEnabled(
+					true
+				)));
+
+		Assert.assertFalse(
+			systemFDSSerializer.serializeSearchSuggestionsEnabled(
+				FDS_NAMES[0], httpServletRequest));
+		Assert.assertTrue(
+			systemFDSSerializer.serializeSearchSuggestionsEnabled(
+				FDS_NAMES[1], httpServletRequest));
+
+		_unregisterServices();
+
+		_registerServices(_registerSystemFDSEntry(FDS_NAMES[0]));
+
+		Assert.assertFalse(
+			systemFDSSerializer.serializeSearchSuggestionsEnabled(
+				FDS_NAMES[0], httpServletRequest));
+
+		_unregisterServices();
+	}
+
+	@Test
 	public void testSerializeShowSearch() throws Exception {
 		_registerServices(
 			_registerSystemFDSEntry(
@@ -2032,6 +2066,11 @@ public class SystemFDSSerializerTest extends BaseFDSSerializerTestCase {
 					}
 
 					@Override
+					public boolean getSearchSuggestionsEnabled() {
+						return _searchSuggestionsEnabled;
+					}
+
+					@Override
 					public boolean getShowSearch() {
 						return _showSearch;
 					}
@@ -2092,6 +2131,14 @@ public class SystemFDSSerializerTest extends BaseFDSSerializerTestCase {
 			return this;
 		}
 
+		public SystemFDSEntryWrapper withSearchSuggestionsEnabled(
+			boolean searchSuggestionsEnabled) {
+
+			_searchSuggestionsEnabled = searchSuggestionsEnabled;
+
+			return this;
+		}
+
 		public SystemFDSEntryWrapper withShowSearch(boolean showSearch) {
 			_showSearch = showSearch;
 
@@ -2113,6 +2160,7 @@ public class SystemFDSSerializerTest extends BaseFDSSerializerTestCase {
 		private int[] _listOfItemsPerPage;
 		private String _propsTransformer;
 		private boolean _searchAsYouType;
+		private boolean _searchSuggestionsEnabled;
 		private boolean _showSearch;
 		private boolean _snapshotsEnabled;
 

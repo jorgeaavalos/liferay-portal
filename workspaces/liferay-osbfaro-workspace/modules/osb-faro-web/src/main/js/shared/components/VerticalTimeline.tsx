@@ -1,12 +1,16 @@
+import ClayButton from '@clayui/button';
 import ClayIcon from '@clayui/icon';
 import ClayLabel, {LabelDisplayType} from '@clayui/label';
 import ClayLink from '@clayui/link';
 import ClaySticker from '@clayui/sticker';
 import ClayTable from '@clayui/table';
+import CopyButton from 'shared/components/CopyButton';
+import EventCountPill from 'shared/components/EventCountPill';
 import getCN from 'classnames';
 import Loading from 'shared/components/Loading';
 import moment from 'moment';
 import React, {FC, useState} from 'react';
+import RowMain from 'shared/components/RowMain';
 import TextTruncate from './TextTruncate';
 import {Colors} from 'shared/util/colors-size';
 import {formatDateToTimeZone} from 'shared/util/date';
@@ -17,7 +21,6 @@ import {
 import {
 	isWebhookUserAgent,
 	SessionEvent,
-	VerticalTimelineHeader,
 	VerticalTimelineIndividual,
 	VerticalTimelineItem,
 	VerticalTimelinePageGroup,
@@ -62,40 +65,6 @@ type IRowProps<Item> = {
 	LDPEnabled?: boolean;
 	timeZoneId: string;
 };
-
-/**
- * The clickable part of a row: everything but the content it reveals. The caret
- * lives here so every expandable row carries it in the same place, on the right.
- */
-const RowMain: FC<{
-	children: React.ReactNode;
-	expanded: boolean;
-	onToggle: () => void;
-}> = ({children, expanded, onToggle}) => (
-	<div
-		className="row-main d-flex align-items-start"
-		onClick={onToggle}
-		onKeyPress={onToggle}
-		role="button"
-		tabIndex={0}
-	>
-		{children}
-
-		<ClayIcon
-			className="angle-icon icon-root ml-3 flex-shrink-0 text-secondary"
-			symbol={expanded ? 'angle-up' : 'angle-down'}
-		/>
-	</div>
-);
-
-const EventCountPill: FC<{totalEvents?: number}> = ({totalEvents}) =>
-	totalEvents === undefined ? null : (
-		<span className="event-count-pill align-items-center d-inline-flex flex-shrink-0 font-weight-semi-bold text-secondary">
-			<ClayIcon className="icon-root" symbol="click" />
-
-			<span className="event-count ml-1">{totalEvents}</span>
-		</span>
-	);
 
 const RowIconLabel: FC<{
 	displayType: LabelDisplayType;
@@ -216,8 +185,10 @@ const ExternalLink: FC<{url: string}> = ({url}) => (
  */
 const PayloadTable: FC<{table: IPayloadTable}> = ({table: {rows, title}}) => (
 	<div className="payload-table">
-		<div className="payload-table-title font-weight-semi-bold text-secondary text-uppercase">
-			{title}
+		<div className="payload-table-title text-uppercase">
+			<Text size={2} weight="semi-bold">
+				{title}
+			</Text>
 		</div>
 
 		<ClayTable className="table-sm" striped={false}>
@@ -240,9 +211,7 @@ const PayloadTable: FC<{table: IPayloadTable}> = ({table: {rows, title}}) => (
 							{property}
 						</ClayTable.Cell>
 
-						<ClayTable.Cell className="text-secondary">
-							{value}
-						</ClayTable.Cell>
+						<ClayTable.Cell>{value}</ClayTable.Cell>
 					</ClayTable.Row>
 				))}
 			</ClayTable.Body>
@@ -250,28 +219,96 @@ const PayloadTable: FC<{table: IPayloadTable}> = ({table: {rows, title}}) => (
 	</div>
 );
 
-const RowAttributes: FC<{payload: Record<string, unknown>}> = ({payload}) => (
-	<div className="attributes-payload d-block w-100">
-		{formatPayloadTables(payload).map((table) => (
-			<PayloadTable key={table.title} table={table} />
+/**
+ * The payload as the API returned it, with a button that copies exactly what is
+ * on screen. The copy sits over the code rather than in the row's header so it
+ * travels with the view it belongs to, and never offers to copy a table.
+ */
+const PayloadCode: FC<{payload: Record<string, unknown>}> = ({payload}) => {
+	const code = JSON.stringify(payload, null, 2);
+
+	return (
+		<div className="payload-code-root position-relative">
+			<CopyButton
+				borderless
+				className="payload-copy"
+				displayType="secondary"
+				label={Liferay.Language.get('copy-details')}
+				monospaced
+				size="xs"
+				text={code}
+			/>
+
+			<code className="payload-code text-secondary d-block w-100">
+				{code}
+			</code>
+		</div>
+	);
+};
+
+const PAYLOAD_VIEWS = ['table', 'code'] as const;
+
+type PayloadView = (typeof PAYLOAD_VIEWS)[number];
+
+const PAYLOAD_VIEW_LANG_MAP: Record<PayloadView, string> = {
+	code: Liferay.Language.get('code'),
+	table: Liferay.Language.get('table'),
+};
+
+/**
+ * Picks which shape the expanded payload is read in. The tables are the way in,
+ * and the raw payload sits one click away for the times a reader needs the keys
+ * and nesting the tables flatten away.
+ */
+const PayloadViewSelector: FC<{
+	onChange: (view: PayloadView) => void;
+	view: PayloadView;
+}> = ({onChange, view}) => (
+	<ClayButton.Group className="payload-view-selector">
+		{PAYLOAD_VIEWS.map((payloadView) => (
+			<ClayButton
+				className={getCN('button-root payload-view-option', {
+					active: payloadView === view,
+				})}
+				displayType="secondary"
+				key={payloadView}
+				onClick={() => onChange(payloadView)}
+				size="xs"
+			>
+				{PAYLOAD_VIEW_LANG_MAP[payloadView]}
+			</ClayButton>
 		))}
-	</div>
+	</ClayButton.Group>
 );
 
-const DayRow: FC<{item: VerticalTimelineHeader}> = ({
-	item: {title, totalEvents},
-}) => (
-	<li className="timeline-row day-row p-3 bg-white w-100 d-flex align-items-center">
-		<ClayIcon
-			className="day-icon icon-root text-secondary mr-2"
-			symbol="calendar"
-		/>
+/**
+ * The payload an expanded row reveals. The chosen view is state of this
+ * component, which the timeline instantiates once per row, so switching one
+ * row to the raw payload leaves every other row on the tables.
+ */
+const RowAttributes: FC<{payload: Record<string, unknown>}> = ({payload}) => {
+	const [view, setView] = useState<PayloadView>('table');
 
-		<span className="title text-dark">{title}</span>
+	return (
+		<div className="attributes-payload d-block w-100">
+			<div className="payload-header d-flex align-items-center justify-content-between">
+				<Text size={3} weight="semi-bold">
+					{Liferay.Language.get('details')}
+				</Text>
 
-		<EventCountPill totalEvents={totalEvents} />
-	</li>
-);
+				<PayloadViewSelector onChange={setView} view={view} />
+			</div>
+
+			{view === 'table' ? (
+				formatPayloadTables(payload).map((table) => (
+					<PayloadTable key={table.title} table={table} />
+				))
+			) : (
+				<PayloadCode payload={payload} />
+			)}
+		</div>
+	);
+};
 
 /**
  * The individual a group of sessions belongs to: a plain, unexpandable row —
@@ -279,7 +316,7 @@ const DayRow: FC<{item: VerticalTimelineHeader}> = ({
  * day.
  */
 const IndividualRow: FC<{item: VerticalTimelineIndividual}> = ({
-	item: {individualId, individualName, individualUrl, isAnonymous},
+	item: {individualId, individualName, individualUrl, isAnonymous, jobTitle},
 }) => (
 	<li className="timeline-row individual-row bg-white w-100">
 		<div className="row-content flex-fill d-flex align-items-center">
@@ -291,27 +328,37 @@ const IndividualRow: FC<{item: VerticalTimelineIndividual}> = ({
 			</ClaySticker>
 
 			<div className="individual-info">
-				{individualUrl ? (
+				{individualUrl && !isAnonymous ? (
 					<ClayLink className="individual-name" href={individualUrl}>
-						<Text color="primary" size={3} weight="semi-bold">
+						<Text size={3} weight="semi-bold">
 							{individualName}
 						</Text>
 					</ClayLink>
 				) : (
 					<span className="individual-name">
-						<Text color="primary" size={3} weight="semi-bold">
+						<Text size={3} weight="semi-bold">
 							{individualName}
 						</Text>
 					</span>
 				)}
 
-				{individualId && (
-					<div className="individual-id">
-						<Text color="secondary" size={3} weight="normal">
-							{individualId}
-						</Text>
-					</div>
-				)}
+				{!!(jobTitle || individualId) &&
+					(individualUrl && isAnonymous ? (
+						<ClayLink
+							className="individual-id"
+							href={individualUrl}
+						>
+							<Text color="secondary" size={3} weight="normal">
+								{individualId}
+							</Text>
+						</ClayLink>
+					) : (
+						<div className="individual-id">
+							<Text color="secondary" size={3} weight="normal">
+								{jobTitle || individualId}
+							</Text>
+						</div>
+					))}
 			</div>
 		</div>
 	</li>
@@ -365,12 +412,9 @@ const SessionRow: FC<IRowProps<VerticalTimelineSession>> = ({
 				{expanded}
 			)}
 		>
-			<RowMain
-				expanded={expanded}
-				onToggle={() => setExpanded(!expanded)}
-			>
+			<RowMain infoButton onToggle={() => setExpanded(!expanded)}>
 				<div className="row-content flex-fill">
-					<span className="title text-dark">
+					<span className="title text-secondary">
 						{sub(Liferay.Language.get('session-x-x'), [
 							time
 								? formatDateToTimeZone(
@@ -449,10 +493,12 @@ const PageGroupRow: FC<IRowProps<VerticalTimelinePageGroup>> = ({
 					<div className="page-row-header">
 						<RowTime time={time} timeZoneId={timeZoneId} />
 
-						<ClayIcon
-							className="row-icon icon-root text-secondary mt-0 flex-shrink-0"
-							symbol="page"
-						/>
+						<ClaySticker className="page-sticker flex-shrink-0">
+							<ClayIcon
+								className="row-icon icon-root text-secondary"
+								symbol="page"
+							/>
+						</ClaySticker>
 
 						{descriptionUrl ? (
 							<ClayLink
@@ -543,13 +589,17 @@ const EventRow: FC<IRowProps<SessionEvent>> = ({
 				expanded,
 			})}
 		>
-			<RowMain
-				expanded={expanded}
-				onToggle={() => setExpanded(!expanded)}
-			>
+			<RowMain infoButton onToggle={() => setExpanded(!expanded)}>
 				<div className="row-content flex-fill">
 					<div className="event-header">
 						<RowTime time={time} timeZoneId={timeZoneId} />
+
+						<ClaySticker className="event-sticker flex-shrink-0">
+							<ClayIcon
+								className="row-icon icon-root text-secondary"
+								symbol="click"
+							/>
+						</ClaySticker>
 
 						<span className="title text-dark">
 							<TextTruncate title={title} />
@@ -606,10 +656,6 @@ const EventRow: FC<IRowProps<SessionEvent>> = ({
 
 const TimelineRow: FC<IRowProps<ITEM_SHAPE>> = (props) => {
 	const {item} = props;
-
-	if ('header' in item) {
-		return <DayRow item={item} />;
-	}
 
 	if ('individual' in item) {
 		return <IndividualRow item={item} />;
