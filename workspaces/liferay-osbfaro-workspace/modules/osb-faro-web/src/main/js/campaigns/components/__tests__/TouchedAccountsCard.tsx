@@ -45,19 +45,37 @@ describe('TouchedAccountsCard', () => {
 		);
 	});
 
-	it('should leave the Individuals Touched tab inert', () => {
+	it('should select the Individuals Touched tab when it is clicked', () => {
 		renderCard();
 
-		const tab = screen.getByText('Individuals Touched');
+		fireEvent.click(screen.getByText('Individuals Touched'));
 
-		expect(tab).toBeDisabled();
+		expect(screen.getByText('Individuals Touched')).toHaveClass('active');
+		expect(screen.getByText('Accounts Touched')).not.toHaveClass('active');
+	});
 
-		fireEvent.click(tab);
+	// Nothing is behind the tab yet, so it shows a blank panel rather than an
+	// empty state: the touched accounts table belongs to Accounts Touched
+	// alone and must not stay on screen under the other tab.
 
-		// Clicking it must not move the selection off Accounts Touched.
+	it('should leave the Individuals Touched panel empty', () => {
+		renderCard();
 
-		expect(screen.getByText('Accounts Touched')).toHaveClass('active');
-		expect(tab).not.toHaveClass('active');
+		fireEvent.click(screen.getByText('Individuals Touched'));
+
+		expect(screen.queryByTestId('fds-component')).not.toBeInTheDocument();
+	});
+
+	it('should bring the table back on returning to Accounts Touched', () => {
+		renderCard();
+
+		fireEvent.click(screen.getByText('Individuals Touched'));
+		fireEvent.click(screen.getByText('Accounts Touched'));
+
+		expect(screen.getByTestId('fds-component')).toBeInTheDocument();
+		expect(lastFDSProps.apiURL).toBe(
+			'/o/faro/contacts/23/campaigns/7/accounts?channelId=123'
+		);
 	});
 
 	it('should render the four columns the design shows, unsorted', () => {
@@ -138,9 +156,17 @@ describe('TouchedAccountsCard', () => {
 	it('should abbreviate an amount and leave a missing one blank', () => {
 		renderCard();
 
-		const amount = (value?: number) =>
+		const amount = (value?: number | string | null) =>
 			render(lastFDSProps.customDataRenderers.amountRenderer({value}))
 				.container.textContent;
+
+		// The endpoint sends these as strings, which is what the cell
+		// actually receives. `toThousands` returns '' for a string, so a
+		// renderer that formats the raw value empties every populated cell.
+
+		expect(amount('18500000')).toBe('18.5M');
+		expect(amount('950000')).toBe('950K');
+		expect(amount('0')).toBe('0');
 
 		expect(amount(18500000)).toBe('18.5M');
 		expect(amount(950000)).toBe('950K');
@@ -149,6 +175,8 @@ describe('TouchedAccountsCard', () => {
 		// account with no opportunity value shows nothing rather than a zero.
 
 		expect(amount(undefined)).toBe('');
+		expect(amount(null)).toBe('');
+		expect(amount('')).toBe('');
 	});
 
 	it('should leave the empty result to the data set default', () => {

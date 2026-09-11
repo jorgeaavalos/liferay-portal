@@ -913,7 +913,6 @@ public class CustomFDSSerializerTest extends BaseFDSSerializerTestCase {
 			HashMapBuilder.<String, Object>put(
 				"searchAsYouType", true
 			).build());
-
 		_mockSerializeSearchAsYouType(FDS_NAMES[1], Collections.emptyMap());
 
 		Assert.assertTrue(
@@ -921,6 +920,26 @@ public class CustomFDSSerializerTest extends BaseFDSSerializerTestCase {
 				FDS_NAMES[0], httpServletRequest));
 		Assert.assertFalse(
 			_customFDSSerializer.serializeSearchAsYouType(
+				FDS_NAMES[1], httpServletRequest));
+
+		_resetFDSSerializer();
+	}
+
+	@Test
+	public void testSerializeSearchSuggestionsEnabled() throws Exception {
+		_mockSerializeSearchSuggestionsEnabled(
+			FDS_NAMES[0],
+			HashMapBuilder.<String, Object>put(
+				"searchSuggestionsEnabled", true
+			).build());
+		_mockSerializeSearchSuggestionsEnabled(
+			FDS_NAMES[1], Collections.emptyMap());
+
+		Assert.assertTrue(
+			_customFDSSerializer.serializeSearchSuggestionsEnabled(
+				FDS_NAMES[0], httpServletRequest));
+		Assert.assertFalse(
+			_customFDSSerializer.serializeSearchSuggestionsEnabled(
 				FDS_NAMES[1], httpServletRequest));
 
 		_resetFDSSerializer();
@@ -1634,6 +1653,22 @@ public class CustomFDSSerializerTest extends BaseFDSSerializerTestCase {
 
 		Mockito.when(
 			_customFDSSerializer.serializeSearchAsYouType(
+				fdsName, httpServletRequest)
+		).thenCallRealMethod();
+	}
+
+	private void _mockSerializeSearchSuggestionsEnabled(
+		String fdsName, Map<String, Object> properties) {
+
+		Mockito.when(
+			_customFDSSerializer.getDataSetObjectEntryProperties(
+				fdsName, httpServletRequest)
+		).thenReturn(
+			properties
+		);
+
+		Mockito.when(
+			_customFDSSerializer.serializeSearchSuggestionsEnabled(
 				fdsName, httpServletRequest)
 		).thenCallRealMethod();
 	}

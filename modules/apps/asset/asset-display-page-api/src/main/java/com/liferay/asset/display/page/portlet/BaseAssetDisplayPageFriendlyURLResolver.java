@@ -133,23 +133,33 @@ public abstract class BaseAssetDisplayPageFriendlyURLResolver
 				httpServletRequest, assetEntry.getEntryId());
 		}
 
-		Locale locale = portal.getLocale(httpServletRequest);
 		Layout layout = getLayoutDisplayPageObjectProviderLayout(
 			groupId, friendlyURL, layoutDisplayPageObjectProvider,
 			layoutDisplayPageProvider);
 
-		InfoItemFieldValuesProvider<Object> infoItemFieldValuesProvider =
-			infoItemServiceRegistry.getFirstInfoItemService(
-				InfoItemFieldValuesProvider.class,
-				layoutDisplayPageObjectProvider.getClassName());
+		String mappedDescription = layout.getTypeSettingsProperty(
+			"mapped-description");
+		String mappedTitle = layout.getTypeSettingsProperty("mapped-title");
 
-		InfoItemFieldValues infoItemFieldValues =
-			infoItemFieldValuesProvider.getInfoItemFieldValues(
-				layoutDisplayPageObjectProvider.getDisplayObject());
+		InfoItemFieldValues infoItemFieldValues = null;
+
+		if (Validator.isNotNull(mappedDescription) ||
+			Validator.isNotNull(mappedTitle)) {
+
+			InfoItemFieldValuesProvider<Object> infoItemFieldValuesProvider =
+				infoItemServiceRegistry.getFirstInfoItemService(
+					InfoItemFieldValuesProvider.class,
+					layoutDisplayPageObjectProvider.getClassName());
+
+			infoItemFieldValues =
+				infoItemFieldValuesProvider.getInfoItemFieldValues(
+					layoutDisplayPageObjectProvider.getDisplayObject());
+		}
+
+		Locale locale = portal.getLocale(httpServletRequest);
 
 		String description = _getMappedValue(
-			layout.getTypeSettingsProperty("mapped-description"),
-			infoItemFieldValues, locale);
+			mappedDescription, infoItemFieldValues, locale);
 
 		if (description == null) {
 			description = layoutDisplayPageObjectProvider.getDescription(
@@ -165,8 +175,7 @@ public abstract class BaseAssetDisplayPageFriendlyURLResolver
 			httpServletRequest);
 
 		String title = _getMappedValue(
-			layout.getTypeSettingsProperty("mapped-title"), infoItemFieldValues,
-			locale);
+			mappedTitle, infoItemFieldValues, locale);
 
 		if (title == null) {
 			title = layoutDisplayPageObjectProvider.getTitle(locale);
@@ -200,20 +209,23 @@ public abstract class BaseAssetDisplayPageFriendlyURLResolver
 			groupId, friendlyURL, layoutDisplayPageObjectProvider,
 			layoutDisplayPageProvider);
 
-		String originalFriendlyURL = _getOriginalFriendlyURL(friendlyURL);
-
-		String localizedFriendlyURL = originalFriendlyURL;
+		if (!useOriginalFriendlyURL()) {
+			return new LayoutFriendlyURLComposite(layout, friendlyURL, false);
+		}
 
 		String urlTitle = layoutDisplayPageObjectProvider.getURLTitle(
 			getLocale(requestContext));
 
-		if (useOriginalFriendlyURL() && Validator.isNotNull(urlTitle)) {
-			localizedFriendlyURL = getURLSeparator() + urlTitle;
-		}
+		if (Validator.isNotNull(urlTitle)) {
+			String localizedFriendlyURL = getURLSeparator() + urlTitle;
 
-		if (!isSameFriendlyURL(originalFriendlyURL, localizedFriendlyURL)) {
-			return new LayoutFriendlyURLComposite(
-				layout, localizedFriendlyURL, true);
+			if (!isSameFriendlyURL(
+					_getOriginalFriendlyURL(friendlyURL),
+					localizedFriendlyURL)) {
+
+				return new LayoutFriendlyURLComposite(
+					layout, localizedFriendlyURL, true);
+			}
 		}
 
 		return new LayoutFriendlyURLComposite(layout, friendlyURL, false);

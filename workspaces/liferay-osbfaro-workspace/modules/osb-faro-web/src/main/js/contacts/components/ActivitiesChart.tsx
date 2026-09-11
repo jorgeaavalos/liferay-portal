@@ -22,6 +22,7 @@ import {
 	YAxis,
 } from 'recharts';
 import {CHART_COLOR_NAMES} from 'shared/util/charts';
+import {ENABLE_DAY_LEVEL_ACTIVITY} from 'shared/util/feature-flags';
 import {
 	ChartView,
 	DEFAULT_CHART_VIEW,
@@ -57,6 +58,7 @@ interface IChartProps<T> extends React.HTMLAttributes<HTMLElement> {
 
 interface IActivitiesHistoryProps<initDateType = number> {
 	intervalInitDate: initDateType;
+	totalCampaignResponses?: number;
 	totalEvents: number;
 	totalSessions?: number;
 	uniqueVisitors?: number;
@@ -106,7 +108,12 @@ const ActivitiesChart: React.FC<
 				return null;
 			}
 
-			const {intervalInitDate, totalEvents, totalSessions} = data;
+			const {
+				intervalInitDate,
+				totalCampaignResponses,
+				totalEvents,
+				totalSessions,
+			} = data;
 
 			const rows: ChartTooltipRow[] = tooltipRenderRows
 				? tooltipRenderRows(data)
@@ -119,6 +126,18 @@ const ActivitiesChart: React.FC<
 							label: Liferay.Language.get('sessions'),
 							value: toLocale(totalSessions),
 						},
+						...(ENABLE_DAY_LEVEL_ACTIVITY
+							? [
+									{
+										label: Liferay.Language.get(
+											'campaign-responses'
+										),
+										value: toLocale(
+											totalCampaignResponses ?? 0
+										),
+									},
+								]
+							: []),
 					];
 
 			if (moment.utc(intervalInitDate).isSame(moment(), 'day')) {

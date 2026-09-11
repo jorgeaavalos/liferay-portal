@@ -84,6 +84,9 @@ public interface FDSSerializer {
 	public boolean serializeSearchAsYouType(
 		String fdsName, HttpServletRequest httpServletRequest);
 
+	public boolean serializeSearchSuggestionsEnabled(
+		String fdsName, HttpServletRequest httpServletRequest);
+
 	public boolean serializeShowSearch(
 		String fdsName, HttpServletRequest httpServletRequest);
 
