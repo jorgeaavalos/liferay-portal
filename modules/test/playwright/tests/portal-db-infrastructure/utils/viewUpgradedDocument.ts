@@ -6,6 +6,7 @@
 import {Page, expect} from '@playwright/test';
 import {statSync} from 'fs';
 
+import {clickAndExpectToBeVisible} from '../../../utils/clickAndExpectToBeVisible';
 import {getTempDir} from '../../../utils/temp';
 
 /**
@@ -30,26 +31,37 @@ export async function viewUpgradedDocument({
 
 	await page.getByRole('link', {name: title}).click();
 
-	await page.locator('a[href*=infoPanel]').click();
+	const downloadButton = page
+		.locator('.sidebar-section')
+		.getByRole('link', {name: 'Download'});
 
-	await expect(page.locator('.sidebar-body .username')).toHaveText(
-		'Test Test'
-	);
+	await clickAndExpectToBeVisible({
+		target: downloadButton,
+		timeout: 5000,
+		trigger: page.locator('a[href*=infoPanel]'),
+	});
 
-	await expect(page.locator('.sidebar-header .label-item')).toHaveText(
-		'Version 1.0'
-	);
+	const username = page.locator('.sidebar-body .username');
 
-	await expect(page.locator('.sidebar-header .workflow-status')).toHaveText(
-		'Approved'
-	);
+	await expect(username).toBeVisible();
+
+	await expect(username).toHaveText('Test Test');
+
+	const version = page.locator('.sidebar-header .label-item');
+
+	await expect(version).toBeVisible();
+
+	await expect(version).toHaveText('Version 1.0');
+
+	const workflowStatus = page.locator('.sidebar-header .workflow-status');
+
+	await expect(workflowStatus).toBeVisible();
+
+	await expect(workflowStatus).toHaveText('Approved');
 
 	const downloadPromise = page.waitForEvent('download');
 
-	await page
-		.locator('.sidebar-section')
-		.getByRole('link', {name: 'Download'})
-		.click();
+	await downloadButton.click();
 
 	const download = await downloadPromise;
 
