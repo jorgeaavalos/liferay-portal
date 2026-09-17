@@ -17,9 +17,9 @@ function assert_document_library_not_populated {
 		return 0
 	fi
 
-	if [[ $(ls -A ${document_library_dir} | wc -l) -gt 1 ]]
+	if [ $(ls -A ${document_library_dir} | wc -l) -gt 1 ]
 	then
-		echo "Unable to confirm the database store was used, ${document_library_dir} is populated."
+		echo "Unable to confirm the database store was used for ${document_library_dir}."
 
 		exit 1
 	fi
