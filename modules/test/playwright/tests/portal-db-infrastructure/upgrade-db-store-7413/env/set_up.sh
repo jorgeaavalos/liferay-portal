@@ -17,7 +17,7 @@ function assert_document_library_not_populated {
 		return 0
 	fi
 
-	if [ $(ls -A ${document_library_dir} | wc -l) -gt 0 ]
+	if find "${document_library_dir}" -mindepth 1 -maxdepth 1 -print -quit | grep -q .
 	then
 		echo "Unable to confirm the database store was used for ${document_library_dir}."
 
