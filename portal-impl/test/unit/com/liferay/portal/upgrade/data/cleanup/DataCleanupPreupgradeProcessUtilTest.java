@@ -43,6 +43,13 @@ public class DataCleanupPreupgradeProcessUtilTest {
 		try (MockedStatic<DBManagerUtil> dbManagerUtilMockedStatic =
 				Mockito.mockStatic(DBManagerUtil.class)) {
 
+			String catalog1 = RandomTestUtil.randomString();
+			String catalog2 = RandomTestUtil.randomString();
+			String primaryKeyColumnName = RandomTestUtil.randomString();
+			String schema1 = RandomTestUtil.randomString();
+			String schema2 = RandomTestUtil.randomString();
+			String tableName = RandomTestUtil.randomString();
+
 			DB db = Mockito.mock(DB.class);
 
 			dbManagerUtilMockedStatic.when(
@@ -52,7 +59,6 @@ public class DataCleanupPreupgradeProcessUtilTest {
 			);
 
 			Connection connection1 = Mockito.mock(Connection.class);
-			String tableName = RandomTestUtil.randomString();
 
 			Mockito.when(
 				db.getPrimaryKeyColumnNames(connection1, tableName)
@@ -60,11 +66,7 @@ public class DataCleanupPreupgradeProcessUtilTest {
 				new String[0]
 			);
 
-			DBInspector dbInspector1 = _mockDBInspector(
-				RandomTestUtil.randomString());
-
 			Connection connection2 = Mockito.mock(Connection.class);
-			String primaryKeyColumnName = RandomTestUtil.randomString();
 
 			Mockito.when(
 				db.getPrimaryKeyColumnNames(connection2, tableName)
@@ -72,22 +74,31 @@ public class DataCleanupPreupgradeProcessUtilTest {
 				new String[] {primaryKeyColumnName}
 			);
 
-			DBInspector dbInspector2 = _mockDBInspector(
-				RandomTestUtil.randomString());
+			DBInspector dbInspector1 = _mockDBInspector(catalog1, schema1);
+			DBInspector dbInspector2 = _mockDBInspector(catalog2, schema1);
+			DBInspector dbInspector3 = _mockDBInspector(catalog1, schema2);
 
 			_testGetPrimaryKeyColumnName(
-				db, connection1, dbInspector1, null, connection2, dbInspector2,
+				connection1, connection2, db, dbInspector1, dbInspector2, null,
 				primaryKeyColumnName, tableName);
 			_testGetPrimaryKeyColumnName(
-				db, connection2, dbInspector2, primaryKeyColumnName,
-				connection1, dbInspector1, null, tableName);
+				connection2, connection1, db, dbInspector2, dbInspector1,
+				primaryKeyColumnName, null, tableName);
+			_testGetPrimaryKeyColumnName(
+				connection1, connection2, db, dbInspector1, dbInspector3, null,
+				primaryKeyColumnName, tableName);
+			_testGetPrimaryKeyColumnName(
+				connection2, connection1, db, dbInspector3, dbInspector1,
+				primaryKeyColumnName, null, tableName);
 
 			_testGetPrimaryKeyColumnNameWithSQLException(
 				connection1, tableName);
 		}
 	}
 
-	private DBInspector _mockDBInspector(String catalog) throws Exception {
+	private DBInspector _mockDBInspector(String catalog, String schema)
+		throws Exception {
+
 		DBInspector dbInspector = Mockito.mock(DBInspector.class);
 
 		Mockito.when(
@@ -96,20 +107,30 @@ public class DataCleanupPreupgradeProcessUtilTest {
 			catalog
 		);
 
+		Mockito.when(
+			dbInspector.getSchema()
+		).thenReturn(
+			schema
+		);
+
 		return dbInspector;
 	}
 
 	private void _testGetPrimaryKeyColumnName(
-			DB db, Connection connection1, DBInspector dbInspector1,
-			String expectedPrimaryKeyColumnName1, Connection connection2,
-			DBInspector dbInspector2, String expectedPrimaryKeyColumnName2,
-			String tableName)
+			Connection connection1, Connection connection2, DB db,
+			DBInspector dbInspector1, DBInspector dbInspector2,
+			String expectedPrimaryKeyColumnName1,
+			String expectedPrimaryKeyColumnName2, String tableName)
 		throws Exception {
 
 		DataCleanupPreupgradeProcessUtil.enableCache();
 
 		Mockito.clearInvocations(db);
 
+		Assert.assertEquals(
+			expectedPrimaryKeyColumnName1,
+			DataCleanupPreupgradeProcessUtil.getPrimaryKeyColumnName(
+				connection1, dbInspector1, tableName));
 		Assert.assertEquals(
 			expectedPrimaryKeyColumnName1,
 			DataCleanupPreupgradeProcessUtil.getPrimaryKeyColumnName(
@@ -142,12 +163,14 @@ public class DataCleanupPreupgradeProcessUtilTest {
 			Connection connection, String tableName)
 		throws Exception {
 
+		DataCleanupPreupgradeProcessUtil.enableCache();
+
 		DBInspector dbInspector = Mockito.mock(DBInspector.class);
 
 		Mockito.when(
 			dbInspector.getCatalog()
 		).thenThrow(
-			new SQLException(RandomTestUtil.randomString())
+			new SQLException()
 		);
 
 		Assert.assertThrows(
