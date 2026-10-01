@@ -129,6 +129,15 @@ public class PlaywrightBatchTestClassGroupTest
 			true,
 			playwrightBatchTestClassGroup.isDatabaseTypeSupported(
 				"shared-spec-project"));
+
+		PlaywrightBatchTestClassGroup db2PlaywrightBatchTestClassGroup =
+			_newPlaywrightBatchTestClassGroup(
+				"playwright-js-smoke-tomcat101-db2111", new Properties());
+
+		testEquals(
+			false,
+			db2PlaywrightBatchTestClassGroup.isDatabaseTypeSupported(
+				"shared-spec-project"));
 	}
 
 	private void _testIsDatabaseTypeSupportedIncludesWildcard() {
