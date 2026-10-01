@@ -8,6 +8,7 @@ import {Browser, expect, test} from '@playwright/test';
 import {liferayConfig} from '../../../liferay.config';
 import {DocumentLibraryPage} from '../../../pages/document-library-web/DocumentLibraryPage';
 import {WebContentPage} from '../../../pages/journal-web/WebContentPage';
+import {RolePage} from '../../../pages/roles-admin-web/RolePage';
 import {RolesPage} from '../../../pages/roles-admin-web/RolesPage';
 import {EditUserPage} from '../../../pages/users-admin-web/EditUserPage';
 import {UsersAndOrganizationsPage} from '../../../pages/users-admin-web/UsersAndOrganizationsPage';
@@ -131,7 +132,9 @@ export async function viewUpgradedPartition({
 
 			await roleLink.click();
 
-			await expect(page.getByLabel('Title')).toHaveValue(roleTitle);
+			const rolePage = new RolePage(page);
+
+			await expect(rolePage.titleInput).toHaveValue(roleTitle);
 		});
 
 		await test.step(`View this partition's document on ${virtualHostName}`, async () => {
