@@ -7,11 +7,13 @@ import {Browser, expect, test} from '@playwright/test';
 
 import {liferayConfig} from '../../../liferay.config';
 import {DocumentLibraryPage} from '../../../pages/document-library-web/DocumentLibraryPage';
+import {DocumentLibraryViewFileEntryPage} from '../../../pages/document-library-web/DocumentLibraryViewFileEntryPage';
 import {WebContentPage} from '../../../pages/journal-web/WebContentPage';
 import {RolePage} from '../../../pages/roles-admin-web/RolePage';
 import {RolesPage} from '../../../pages/roles-admin-web/RolesPage';
 import {EditUserPage} from '../../../pages/users-admin-web/EditUserPage';
 import {UsersAndOrganizationsPage} from '../../../pages/users-admin-web/UsersAndOrganizationsPage';
+import {clickAndExpectToBeVisible} from '../../../utils/clickAndExpectToBeVisible';
 import {performLoginViaApi} from '../../../utils/performLogin';
 
 /**
@@ -148,11 +150,19 @@ export async function viewUpgradedPartition({
 				page.getByText(documentTitle, {exact: true})
 			).toBeVisible();
 
-			await page.locator('a[href*=infoPanel]').click();
+			const documentLibraryViewFileEntryPage =
+				new DocumentLibraryViewFileEntryPage(page);
 
-			const sidebarHeader = page.locator('.sidebar-header');
+			const sidebarHeader =
+				documentLibraryViewFileEntryPage.infoPanel.locator(
+					'.sidebar-header'
+				);
 
-			await expect(sidebarHeader).toBeVisible();
+			await clickAndExpectToBeVisible({
+				target: sidebarHeader,
+				timeout: 5000,
+				trigger: documentLibraryViewFileEntryPage.infoButton,
+			});
 
 			await expect(sidebarHeader).toContainText(documentTitle);
 		});
