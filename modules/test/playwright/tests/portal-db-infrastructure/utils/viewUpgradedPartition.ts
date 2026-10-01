@@ -182,7 +182,11 @@ export async function viewUpgradedPartition({
 				has: page.getByText('content', {exact: true}),
 			});
 
-			await expect(contentField).toContainText(webContentContent);
+			const contentEditor = contentField
+				.frameLocator('iframe[title="editor"]')
+				.getByRole('textbox');
+
+			await expect(contentEditor).toContainText(webContentContent);
 		});
 	}
 	finally {
