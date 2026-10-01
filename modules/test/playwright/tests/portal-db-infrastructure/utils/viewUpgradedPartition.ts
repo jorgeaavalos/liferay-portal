@@ -121,13 +121,15 @@ export async function viewUpgradedPartition({
 
 			await rolesPage.rolesTable.search(roleTitle);
 
-			const {row} = await rolesPage.rolesTable.row(1, roleTitle, true);
+			await expect(
+				page.getByText(`1 Result Found for "${roleTitle}"`)
+			).toBeVisible();
 
-			await expect(row).toContainText('Regular');
+			const roleLink = rolesPage.rolesTable.valueLink(roleTitle);
 
-			const cellLink = await rolesPage.rolesTable.cellLink(roleTitle);
+			await expect(roleLink).toBeVisible();
 
-			await cellLink.click();
+			await roleLink.click();
 
 			await expect(page.getByLabel('Title')).toHaveValue(roleTitle);
 		});
