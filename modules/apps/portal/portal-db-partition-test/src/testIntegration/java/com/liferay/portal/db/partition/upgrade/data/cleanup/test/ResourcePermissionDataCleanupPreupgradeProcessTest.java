@@ -92,14 +92,12 @@ public class ResourcePermissionDataCleanupPreupgradeProcessTest
 					logCapture.getLogEntries(), LogEntry::getMessage);
 
 				Assert.assertTrue(
-					messages.toString(),
 					messages.contains(
 						StringBundler.concat(
 							"Skipping class name ", Company.class.getName(),
 							" because Company is a view in a secondary ",
 							"partition")));
 				Assert.assertFalse(
-					messages.toString(),
 					messages.contains("Table Company does not exist"));
 			}
 		}
