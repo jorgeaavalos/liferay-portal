@@ -255,6 +255,47 @@ public class AssetStatistics implements Serializable {
 	private Supplier<Long> _inDraftCountSupplier;
 
 	@io.swagger.v3.oas.annotations.media.Schema
+	public Long getLongStandingDraftsCount() {
+		if (_longStandingDraftsCountSupplier != null) {
+			longStandingDraftsCount = _longStandingDraftsCountSupplier.get();
+
+			_longStandingDraftsCountSupplier = null;
+		}
+
+		return longStandingDraftsCount;
+	}
+
+	public void setLongStandingDraftsCount(Long longStandingDraftsCount) {
+		this.longStandingDraftsCount = longStandingDraftsCount;
+
+		_longStandingDraftsCountSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setLongStandingDraftsCount(
+		UnsafeSupplier<Long, Exception> longStandingDraftsCountUnsafeSupplier) {
+
+		_longStandingDraftsCountSupplier = () -> {
+			try {
+				return longStandingDraftsCountUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Long longStandingDraftsCount;
+
+	@JsonIgnore
+	private Supplier<Long> _longStandingDraftsCountSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getPendingCount() {
 		if (_pendingCountSupplier != null) {
 			pendingCount = _pendingCountSupplier.get();
@@ -546,6 +587,18 @@ public class AssetStatistics implements Serializable {
 			sb.append(inDraftCount);
 		}
 
+		Long longStandingDraftsCount = getLongStandingDraftsCount();
+
+		if (longStandingDraftsCount != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"longStandingDraftsCount\": ");
+
+			sb.append(longStandingDraftsCount);
+		}
+
 		Long pendingCount = getPendingCount();
 
 		if (pendingCount != null) {
@@ -728,4 +781,4 @@ public class AssetStatistics implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
-// LIFERAY-REST-BUILDER-HASH:1836060076
+// LIFERAY-REST-BUILDER-HASH:1857339419
