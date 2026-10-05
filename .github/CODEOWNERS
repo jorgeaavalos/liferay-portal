@@ -561,4 +561,7 @@ workspaces/liferay-one-workspace/    @liferay-one
 workspaces/liferay-paypal-workspace/    @liferay-commerce
 workspaces/liferay-sample-workspace/    @liferay-devtools
 workspaces/liferay-stripe-workspace/    @liferay-commerce
+workspaces/liferay-testray-workspace    @liferay-release
+workspaces/liferay-testray-workspace/client-extensions/liferay-testray-custom-element    @liferay-release
+workspaces/liferay-testray-workspace/client-extensions/liferay-testray-etc-jira    @liferay-release
 workspaces/liferay-ups-workspace/    @liferay-commerce
