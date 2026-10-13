@@ -57,8 +57,9 @@ test(
 		const importTask =
 			await headlessPortalInstance.deleteVirtualInstancesBatch([name]);
 
-		const finishedImportTask =
-			await headlessBatchEngine.waitForImportTask(importTask.id);
+		const finishedImportTask = await headlessBatchEngine.waitForImportTask(
+			importTask.id
+		);
 
 		expect(finishedImportTask.executeStatus).toBe('FAILED');
 
