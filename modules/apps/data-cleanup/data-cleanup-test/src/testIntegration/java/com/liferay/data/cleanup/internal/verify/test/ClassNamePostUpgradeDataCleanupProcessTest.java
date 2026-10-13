@@ -565,17 +565,21 @@ public class ClassNamePostUpgradeDataCleanupProcessTest
 			UnsafeRunnable<Exception> initializeDataUnsafeRunnable)
 		throws Exception {
 
+		super.test(
+			null,
+			() -> {
+			},
+			() -> {
+			});
+
 		long classNameCount = _classNameLocalService.getClassNamesCount();
 
-		try {
-			super.test(
-				assertUnsafeConsumer, cleanUpDataUnsafeRunnable,
-				initializeDataUnsafeRunnable);
-		}
-		finally {
-			Assert.assertEquals(
-				classNameCount, _classNameLocalService.getClassNamesCount());
-		}
+		super.test(
+			assertUnsafeConsumer, cleanUpDataUnsafeRunnable,
+			initializeDataUnsafeRunnable);
+
+		Assert.assertEquals(
+			classNameCount, _classNameLocalService.getClassNamesCount());
 	}
 
 	private void _deleteFromDatabase(long addressId, Connection connection)
