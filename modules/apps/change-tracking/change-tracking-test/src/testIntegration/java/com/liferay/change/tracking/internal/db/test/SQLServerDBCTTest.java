@@ -163,7 +163,7 @@ public class SQLServerDBCTTest {
 	}
 
 	@Test
-	public void testPublishCTCollectionWithOver2000DeletionCTEntries()
+	public void testPublishCTCollectionDeletions()
 		throws Exception {
 
 		long parentCTSChildId = 0;
