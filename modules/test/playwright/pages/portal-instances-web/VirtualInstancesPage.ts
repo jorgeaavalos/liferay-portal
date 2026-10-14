@@ -250,6 +250,12 @@ export class VirtualInstancesPage {
 		);
 	}
 
+	exportedSchemaExistsMessage(schemaName: string) {
+		return this.page.getByText(
+			`The exported schema ${schemaName} already exists.`
+		);
+	}
+
 	exportStartedMessage(name: string) {
 		return this.page.getByText(
 			`The instance ${name} is being exported. You will be notified when it finishes.`
@@ -421,7 +427,13 @@ export class VirtualInstancesPage {
 		}).toPass({intervals: [1000], timeout: 300 * 1000});
 	}
 
-	async startVirtualInstanceExport(name: string) {
+	private async startVirtualInstanceExport(name: string) {
+		await this.submitVirtualInstanceExport(name);
+
+		await expect(this.exportStartedMessage(name)).toBeVisible();
+	}
+
+	async submitVirtualInstanceExport(name: string) {
 		await this.goto();
 
 		const row = this.page.getByRole('row').filter({hasText: name});
@@ -436,8 +448,6 @@ export class VirtualInstancesPage {
 		});
 
 		await this.exportInstanceConfirmButton.click();
-
-		await expect(this.exportStartedMessage(name)).toBeVisible();
 	}
 
 	async exportVirtualInstance(name: string) {
