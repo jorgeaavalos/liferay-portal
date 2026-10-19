@@ -872,26 +872,26 @@ public class CompanyLocalServiceDBPartitionTest
 		throws Exception {
 
 		Company copiedCompany = null;
+		SXPBlueprint sxpBlueprint = null;
 
 		try (SafeCloseable safeCloseable1 =
 				CompanyThreadLocal.setCompanyIdWithSafeCloseable(
 					TestPropsValues.getCompanyId())) {
 
-			SXPBlueprint sxpBlueprint =
-				_sxpBlueprintLocalService.addSXPBlueprint(
-					null, TestPropsValues.getUserId(),
+			sxpBlueprint = _sxpBlueprintLocalService.addSXPBlueprint(
+				null, TestPropsValues.getUserId(),
+				JSONUtil.put(
+					"generalConfiguration",
 					JSONUtil.put(
-						"generalConfiguration",
-						JSONUtil.put(
-							"collectionProvider", true
-						).put(
-							"searchableAssetTypes",
-							JSONUtil.put(JournalArticle.class.getName())
-						)
-					).toString(),
-					Collections.emptyMap(), StringPool.BLANK, StringPool.BLANK,
-					RandomTestUtil.randomLocaleStringMap(),
-					ServiceContextTestUtil.getServiceContext());
+						"collectionProvider", true
+					).put(
+						"searchableAssetTypes",
+						JSONUtil.put(JournalArticle.class.getName())
+					)
+				).toString(),
+				Collections.emptyMap(), StringPool.BLANK, StringPool.BLANK,
+				RandomTestUtil.randomLocaleStringMap(),
+				ServiceContextTestUtil.getServiceContext());
 
 			Layout layout = LayoutTestUtil.addTypeContentLayout(
 				_groupLocalService.getGroup(TestPropsValues.getGroupId()));
@@ -964,12 +964,19 @@ public class CompanyLocalServiceDBPartitionTest
 					_infoItemServiceRegistry.getInfoItemService(
 						InfoCollectionProvider.class, key);
 
+				Assert.assertNotNull(infoCollectionProvider);
+
+				Assert.assertEquals(key, infoCollectionProvider.getKey());
 				Assert.assertTrue(infoCollectionProvider.isAvailable());
 			}
 		}
 		finally {
 			if (copiedCompany != null) {
 				companyLocalService.deleteCompany(copiedCompany.getCompanyId());
+			}
+
+			if (sxpBlueprint != null) {
+				_sxpBlueprintLocalService.deleteSXPBlueprint(sxpBlueprint);
 			}
 		}
 	}
