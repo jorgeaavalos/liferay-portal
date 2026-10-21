@@ -70,14 +70,7 @@ definition {
 
 		Button.clickAdd();
 
-		WaitForElementPresent(
-			key_webId = ${webId},
-			locator1 = "PortalInstances#INSTANCE_CREATION_ALERT");
-
-		if (IsElementPresent(locator1 = "Message#SUCCESS_DISMISSIBLE")) {
-			WaitForElementNotPresent(locator1 = "IFrame#MODAL_BODY");
-		}
-		else {
+		if (IsElementPresent.isElementPresentAfterWait(key_infoMessage = "The instance ${webId} is being created. You will be notified when it finishes.", locator1 = "Message#INFO_SPECIFIC")) {
 			WaitForElementNotPresent(locator1 = "IFrame#MODAL_BODY");
 
 			var key_contentBody = "The instance ${webId} is ready to use.";
@@ -94,6 +87,9 @@ definition {
 			}
 
 			AssertElementPresent(locator1 = "Notifications#NOTIFICATIONS_CONTENT");
+		}
+		else {
+			WaitForElementNotPresent(locator1 = "IFrame#MODAL_BODY");
 		}
 
 		Navigator.openSpecificURL(url = ${virtualInstancesAdminURL});

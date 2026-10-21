@@ -28,14 +28,6 @@
 	<td>//tr/td[4]//a[contains(.,'${key_virtualHost}')]</td>
 	<td></td>
 </tr>
-
-<!--INSTANCE_CREATION-->
-
-<tr>
-	<td>INSTANCE_CREATION_ALERT</td>
-	<td>//div[contains(@class,'alert') and contains(@class,'alert-info') and not(contains(@class,'hide'))][contains(.,'The instance ${key_webId} is being created. You will be notified when it finishes.')] | //div[contains(@class,'alert-success')][contains(@class,'alert-dismissible')] | //div[contains(@class,'alert-success')][contains(@class,'alert-dismissable')]</td>
-	<td></td>
-</tr>
 </tbody>
 </table>
 </body>
