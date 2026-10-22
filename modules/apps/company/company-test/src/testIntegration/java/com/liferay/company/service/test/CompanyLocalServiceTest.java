@@ -720,7 +720,7 @@ public class CompanyLocalServiceTest {
 	}
 
 	@Test
-	public void testAddCompanyWhenCompanyIdExists() throws Exception {
+	public void testAddCompany() throws Exception {
 		Assume.assumeFalse(PropsValues.DATABASE_PARTITION_ENABLED);
 
 		Company company = _addCompany();
