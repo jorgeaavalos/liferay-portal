@@ -187,8 +187,7 @@ public class DatabaseTableAndColumnCaseDataCleanupPreupgradeProcessTest
 	}
 
 	@Test
-	public void testUpgradeWithServiceComponentTableColumnType()
-		throws Exception {
+	public void testUpgradeServiceComponentTableColumnType() throws Exception {
 
 		_testUpgradeWithServiceComponentTable(
 			"VARCHAR(75)", "testCOLUMN", "testTABLE", "testColumn",

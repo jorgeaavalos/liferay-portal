@@ -103,7 +103,7 @@ public class LiveUpgradeSchemaDiffTest {
 	}
 
 	@Test
-	public void testRecordAlterColumnNameWithType() throws Exception {
+	public void testRecordAlterColumnNameTypedDefinition() throws Exception {
 		_liveUpgradeSchemaDiff.recordAlterColumnName(
 			"name", "title VARCHAR(128) not null");
 
