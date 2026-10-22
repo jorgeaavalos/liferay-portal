@@ -460,9 +460,18 @@ public class DatabaseTableAndColumnCaseDataCleanupPreupgradeProcessTest
 						String columnName = _getColumnName(
 							"createDate", connection, "PasswordTracker");
 
-						if ((columnName != null) &&
-							!columnName.equals("createDate")) {
+						if (columnName == null) {
+							String tempColumnName = _getColumnName(
+								"createDate" + _TEMP_SUFFIX, connection,
+								"PasswordTracker");
 
+							if (tempColumnName != null) {
+								_db.alterColumnName(
+									connection, "PasswordTracker",
+									tempColumnName, "createDate");
+							}
+						}
+						else if (!columnName.equals("createDate")) {
 							_renameColumn(
 								columnName, connection, "createDate",
 								"PasswordTracker");

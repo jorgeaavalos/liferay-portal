@@ -120,7 +120,8 @@ public class DatabaseTableAndColumnCaseDataCleanupPreupgradeProcess
 		for (Bundle bundle : bundleContext.getBundles()) {
 			String symbolicName = bundle.getSymbolicName();
 
-			if (!symbolicName.startsWith("com.liferay") ||
+			if ((symbolicName == null) ||
+				!symbolicName.startsWith("com.liferay") ||
 				!BundleUtil.isLiferayServiceBundle(bundle)) {
 
 				continue;
