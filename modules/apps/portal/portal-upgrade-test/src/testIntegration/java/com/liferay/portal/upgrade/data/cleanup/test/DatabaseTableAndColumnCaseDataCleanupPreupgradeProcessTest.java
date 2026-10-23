@@ -87,6 +87,123 @@ public class DatabaseTableAndColumnCaseDataCleanupPreupgradeProcessTest
 	}
 
 	@Test
+	public void testUpgradeModuleTableColumnCasedInServiceComponent()
+		throws Exception {
+
+		long buildNumber = 0;
+
+		for (ServiceComponent serviceComponent :
+				_serviceComponentLocalService.getLatestServiceComponents()) {
+
+			if (!Objects.equals(
+					serviceComponent.getBuildNamespace(),
+					"com.liferay.wiki.service")) {
+
+				continue;
+			}
+
+			buildNumber = serviceComponent.getBuildNumber();
+
+			break;
+		}
+
+		_testUpgradeWithTable(
+			"com.liferay.wiki.service", buildNumber + 1, "nodeId",
+			"CREATEDATE DATE null,\n\t", "WikiNode");
+	}
+
+	@Test
+	public void testUpgradePortalTableColumnCasedInServiceComponent()
+		throws Exception {
+
+		_testUpgradeWithTable(
+			"com.liferay.test.service.impl", 0, "passwordTrackerId",
+			"CREATEDATE DATE null,\n\t", "PasswordTracker");
+	}
+
+	@Test
+	public void testUpgradePortalTableColumnMissingFromServiceComponent()
+		throws Exception {
+
+		_testUpgradeWithTable(
+			"com.liferay.test.service.impl", 0, "passwordTrackerId",
+			StringPool.BLANK, "PasswordTracker");
+	}
+
+	@Test
+	public void testUpgradePortalTableNameCasedInServiceComponent()
+		throws Exception {
+
+		ServiceComponent serviceComponent =
+			_serviceComponentLocalService.createServiceComponent(
+				RandomTestUtil.nextLong());
+
+		serviceComponent.setBuildNamespace("com.liferay.test.service.impl");
+		serviceComponent.setData(
+			"<![CDATA[create table passwordtracker (\n\ttestColumn LONG,\n\t" +
+				"passwordTrackerId LONG not null primary key\n);]]>");
+		serviceComponent.setMvccVersion(0);
+
+		_serviceComponentLocalService.addServiceComponent(serviceComponent);
+
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				DatabaseTableAndColumnCaseDataCleanupPreupgradeProcess.class.
+					getName(),
+				LoggerTestUtil.INFO)) {
+
+			DBPartitionUtil.forEachCompanyId(
+				companyId -> _db.runSQL(
+					"alter table PasswordTracker add TESTCOLUMN LONG"));
+
+			upgrade();
+
+			List<String> messages = logCapture.getMessages();
+
+			Assert.assertTrue(
+				messages.contains(
+					"Table PasswordTracker, column TESTCOLUMN was renamed to " +
+						"testColumn because it was incorrectly cased"));
+
+			DBPartitionUtil.forEachCompanyId(
+				companyId -> {
+					try (Connection connection = DataAccess.getConnection()) {
+						Assert.assertEquals(
+							"testColumn",
+							_getColumnName(
+								"testColumn", connection, "PasswordTracker"));
+					}
+				});
+		}
+		finally {
+			_serviceComponentLocalService.deleteServiceComponent(
+				serviceComponent);
+
+			DBPartitionUtil.forEachCompanyId(
+				companyId -> {
+					try (Connection connection = DataAccess.getConnection()) {
+						for (String columnName :
+								new String[] {
+									"testColumn", "testColumn" + _TEMP_SUFFIX
+								}) {
+
+							String actualColumnName = _getColumnName(
+								columnName, connection, "PasswordTracker");
+
+							if (actualColumnName == null) {
+								continue;
+							}
+
+							_db.runSQL(
+								connection,
+								"alter table PasswordTracker drop column " +
+									actualColumnName);
+						}
+					}
+				});
+		}
+	}
+
+	@Test
 	public void testUpgradeServiceComponentTableColumnType() throws Exception {
 		_testUpgradeWithServiceComponentTable(
 			"VARCHAR(75)", "testCOLUMN", "testTABLE", "testColumn",
@@ -111,32 +228,6 @@ public class DatabaseTableAndColumnCaseDataCleanupPreupgradeProcessTest
 		_testUpgradeWithServiceComponentTable(
 			"LONG", invalidColumnName, invalidTableName, testColumnName,
 			testTableName);
-	}
-
-	@Test
-	public void testUpgradeWithModuleTableColumnCasedInServiceComponent()
-		throws Exception {
-
-		long buildNumber = 0;
-
-		for (ServiceComponent serviceComponent :
-				_serviceComponentLocalService.getLatestServiceComponents()) {
-
-			if (!Objects.equals(
-					serviceComponent.getBuildNamespace(),
-					"com.liferay.wiki.service")) {
-
-				continue;
-			}
-
-			buildNumber = serviceComponent.getBuildNumber();
-
-			break;
-		}
-
-		_testUpgradeWithTable(
-			"com.liferay.wiki.service", buildNumber + 1, "nodeId",
-			"CREATEDATE DATE null,\n\t", "WikiNode");
 	}
 
 	@Test
@@ -212,98 +303,6 @@ public class DatabaseTableAndColumnCaseDataCleanupPreupgradeProcessTest
 					StringBundler.concat(
 						"DROP_TABLE_IF_EXISTS(", objectDefinitionDBTableName,
 						_TEMP_SUFFIX, ")")));
-		}
-	}
-
-	@Test
-	public void testUpgradeWithPortalTableColumnCasedInServiceComponent()
-		throws Exception {
-
-		_testUpgradeWithTable(
-			"com.liferay.test.service.impl", 0, "passwordTrackerId",
-			"CREATEDATE DATE null,\n\t", "PasswordTracker");
-	}
-
-	@Test
-	public void testUpgradeWithPortalTableColumnMissingFromServiceComponent()
-		throws Exception {
-
-		_testUpgradeWithTable(
-			"com.liferay.test.service.impl", 0, "passwordTrackerId",
-			StringPool.BLANK, "PasswordTracker");
-	}
-
-	@Test
-	public void testUpgradeWithPortalTableNameCasedInServiceComponent()
-		throws Exception {
-
-		ServiceComponent serviceComponent =
-			_serviceComponentLocalService.createServiceComponent(
-				RandomTestUtil.nextLong());
-
-		serviceComponent.setBuildNamespace("com.liferay.test.service.impl");
-		serviceComponent.setData(
-			"<![CDATA[create table passwordtracker (\n\ttestColumn LONG,\n\t" +
-				"passwordTrackerId LONG not null primary key\n);]]>");
-		serviceComponent.setMvccVersion(0);
-
-		_serviceComponentLocalService.addServiceComponent(serviceComponent);
-
-		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
-				DatabaseTableAndColumnCaseDataCleanupPreupgradeProcess.class.
-					getName(),
-				LoggerTestUtil.INFO)) {
-
-			DBPartitionUtil.forEachCompanyId(
-				companyId -> _db.runSQL(
-					"alter table PasswordTracker add TESTCOLUMN LONG"));
-
-			upgrade();
-
-			List<String> messages = logCapture.getMessages();
-
-			Assert.assertTrue(
-				messages.toString(),
-				messages.contains(
-					"Table PasswordTracker, column TESTCOLUMN was renamed to " +
-						"testColumn because it was incorrectly cased"));
-
-			DBPartitionUtil.forEachCompanyId(
-				companyId -> {
-					try (Connection connection = DataAccess.getConnection()) {
-						Assert.assertEquals(
-							"testColumn",
-							_getColumnName(
-								"testColumn", connection, "PasswordTracker"));
-					}
-				});
-		}
-		finally {
-			_serviceComponentLocalService.deleteServiceComponent(
-				serviceComponent);
-
-			DBPartitionUtil.forEachCompanyId(
-				companyId -> {
-					try (Connection connection = DataAccess.getConnection()) {
-						for (String columnName :
-								new String[] {
-									"testColumn", "testColumn" + _TEMP_SUFFIX
-								}) {
-
-							String actualColumnName = _getColumnName(
-								columnName, connection, "PasswordTracker");
-
-							if (actualColumnName == null) {
-								continue;
-							}
-
-							_db.runSQL(
-								connection,
-								"alter table PasswordTracker drop column " +
-									actualColumnName);
-						}
-					}
-				});
 		}
 	}
 
@@ -659,7 +658,6 @@ public class DatabaseTableAndColumnCaseDataCleanupPreupgradeProcessTest
 			List<String> messages = logCapture.getMessages();
 
 			Assert.assertTrue(
-				messages.toString(),
 				messages.contains(
 					StringBundler.concat(
 						"Table ", tableName, ", column CREATEDATE was renamed ",

@@ -100,19 +100,20 @@ public class DatabaseTableAndColumnCaseDataCleanupPreupgradeProcess
 			alterTableName(tempTableName, expectedTableName);
 		}
 
-		Map<String, Map<String, String>> columnNamesMap = new TreeMap<>(
+		Map<String, Map<String, String>> expectedColumnsByTable = new TreeMap<>(
 			String.CASE_INSENSITIVE_ORDER);
 
 		_putColumnNames(
 			DBResourceUtil.getServiceComponentPortalColumnDefinitionsMap(
 				connection),
-			columnNamesMap);
+			expectedColumnsByTable);
 		_putColumnNames(
 			DBResourceUtil.getServiceComponentModuleColumnDefinitionsMap(
 				connection),
-			columnNamesMap);
+			expectedColumnsByTable);
 		_putColumnNames(
-			DBResourceUtil.getPortalColumnDefinitionsMap(), columnNamesMap);
+			DBResourceUtil.getPortalColumnDefinitionsMap(),
+			expectedColumnsByTable);
 
 		BundleContext bundleContext = SystemBundleUtil.getBundleContext();
 
@@ -128,10 +129,10 @@ public class DatabaseTableAndColumnCaseDataCleanupPreupgradeProcess
 
 			_putColumnNames(
 				DBResourceUtil.getModuleColumnDefinitionsMap(bundle),
-				columnNamesMap);
+				expectedColumnsByTable);
 		}
 
-		Map<String, Map<String, String>> columnsMap = new TreeMap<>(
+		Map<String, Map<String, String>> existingColumnsByTable = new TreeMap<>(
 			String.CASE_INSENSITIVE_ORDER);
 
 		for (String tableName : expectedTableNames) {
@@ -142,7 +143,7 @@ public class DatabaseTableAndColumnCaseDataCleanupPreupgradeProcess
 				while (resultSet.next()) {
 					String columnName = resultSet.getString("COLUMN_NAME");
 
-					columnsMap.computeIfAbsent(
+					existingColumnsByTable.computeIfAbsent(
 						tableName,
 						k -> new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
 					).put(
@@ -153,12 +154,12 @@ public class DatabaseTableAndColumnCaseDataCleanupPreupgradeProcess
 		}
 
 		for (Map.Entry<String, Map<String, String>> entry :
-				columnsMap.entrySet()) {
+				existingColumnsByTable.entrySet()) {
 
 			String tableName = entry.getKey();
 
-			Map<String, String> expectedColumnNames = columnNamesMap.get(
-				tableName);
+			Map<String, String> expectedColumnNames =
+				expectedColumnsByTable.get(tableName);
 
 			if (expectedColumnNames == null) {
 				continue;
@@ -186,15 +187,16 @@ public class DatabaseTableAndColumnCaseDataCleanupPreupgradeProcess
 	}
 
 	private void _putColumnNames(
-		Map<String, List<String>> columnDefinitionsMap,
-		Map<String, Map<String, String>> columnNamesMap) {
+		Map<String, List<String>> definitionsByTable,
+		Map<String, Map<String, String>> expectedColumnsByTable) {
 
 		for (Map.Entry<String, List<String>> entry :
-				columnDefinitionsMap.entrySet()) {
+				definitionsByTable.entrySet()) {
 
-			Map<String, String> columnNames = columnNamesMap.computeIfAbsent(
-				entry.getKey(),
-				k -> new TreeMap<>(String.CASE_INSENSITIVE_ORDER));
+			Map<String, String> columnNames =
+				expectedColumnsByTable.computeIfAbsent(
+					entry.getKey(),
+					k -> new TreeMap<>(String.CASE_INSENSITIVE_ORDER));
 
 			for (String columnDefinition : entry.getValue()) {
 				String columnName =
