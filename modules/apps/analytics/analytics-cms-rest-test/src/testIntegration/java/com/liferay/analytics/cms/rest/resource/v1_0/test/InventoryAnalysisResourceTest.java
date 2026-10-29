@@ -162,6 +162,37 @@ public class InventoryAnalysisResourceTest
 	}
 
 	@Test
+	public void testGetInventoryAnalysisWithLongTitle() throws Exception {
+		_setUpCMSContext();
+
+		String label = _webContentDefinition.getLabel();
+
+		String title = RandomTestUtil.randomString(4100);
+
+		_webContentDefinition.setLabel(title, LocaleUtil.getDefault());
+
+		_webContentDefinition =
+			_objectDefinitionLocalService.updateObjectDefinition(
+				_webContentDefinition);
+
+		try {
+			_assertInventoryAnalysis(
+				inventoryAnalysisResource.getInventoryAnalysis(
+					null, _depotEntry.getDepotEntryId(), null, null, null, null,
+					null, _webContentDefinition.getObjectDefinitionId(), null,
+					null, null),
+				1, 3L, title);
+		}
+		finally {
+			_webContentDefinition.setLabel(label);
+
+			_webContentDefinition =
+				_objectDefinitionLocalService.updateObjectDefinition(
+					_webContentDefinition);
+		}
+	}
+
+	@Test
 	public void testGetInventoryAnalysisWithoutSpaces() throws Exception {
 		_assertInventoryAnalysis(
 			inventoryAnalysisResource.getInventoryAnalysis(
