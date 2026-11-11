@@ -523,6 +523,12 @@ public class IndexUpdaterUtilTest {
 				Assert.assertTrue(resultSet.next());
 				Assert.assertEquals(id1, resultSet.getInt("id1"));
 				Assert.assertFalse(resultSet.next());
+
+				List<IndexMetadata> indexMetadatas = _db.getIndexMetadatas(
+					connection, "TestTable", "column3", true);
+
+				Assert.assertEquals(
+					indexMetadatas.toString(), 1, indexMetadatas.size());
 			}
 		}
 		finally {
