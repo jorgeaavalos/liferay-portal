@@ -330,6 +330,77 @@ public class IndexUpdaterUtilTest {
 	}
 
 	@Test
+	public void testUpdateIndexRetryBinaryColumns() throws Exception {
+		_createTestTable(", column5 SBLOB", true);
+
+		try {
+			try (Connection connection = DataAccess.getConnection();
+				PreparedStatement preparedStatement =
+					connection.prepareStatement(
+						"insert into TestTable values(?, ?, 3, 4, '5', '6', ?)")) {
+
+				preparedStatement.setInt(1, 1);
+				preparedStatement.setInt(2, 2);
+				preparedStatement.setBytes(3, new byte[] {(byte)0x80});
+
+				preparedStatement.executeUpdate();
+
+				preparedStatement.setInt(1, 7);
+				preparedStatement.setInt(2, 8);
+				preparedStatement.setBytes(3, new byte[] {(byte)0x81});
+
+				preparedStatement.executeUpdate();
+			}
+
+			boolean upgrading = StartupHelperUtil.isUpgrading();
+
+			StartupHelperUtil.setUpgrading(true);
+
+			try (AutoCloseable autoCloseable =
+					() -> StartupHelperUtil.setUpgrading(upgrading);
+				LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+					DuplicateUniqueFinderRowsCleaner.class.getName(),
+					LoggerTestUtil.WARN)) {
+
+				ReflectionTestUtil.invoke(
+					IndexUpdaterUtil.class, "_updateIndexes",
+					new Class<?>[] {String.class, String.class}, "TestTable",
+					"create unique index IX_TestTable on TestTable(column3" +
+						"[$COLUMN_LENGTH:255$], column4[$COLUMN_LENGTH:255$])");
+
+				List<LogEntry> logEntries = logCapture.getLogEntries();
+
+				Assert.assertEquals(
+					logEntries.toString(), 1, logEntries.size());
+
+				LogEntry logEntry = logEntries.get(0);
+
+				Assert.assertEquals(
+					StringBundler.concat(
+						"Unable to delete row from table TestTable due to ",
+						"duplicate values in finder columns column3, column4 ",
+						"because it differs from the kept row in columns ",
+						"column5."),
+					logEntry.getMessage());
+			}
+
+			try (Connection connection = DataAccess.getConnection();
+				PreparedStatement preparedStatement =
+					connection.prepareStatement(
+						"select count(*) as count from TestTable");
+				ResultSet resultSet = preparedStatement.executeQuery()) {
+
+				Assert.assertTrue(resultSet.next());
+
+				Assert.assertEquals(2, resultSet.getLong("count"));
+			}
+		}
+		finally {
+			_dropTestTable();
+		}
+	}
+
+	@Test
 	public void testUpdateIndexRetryDistinctRows() throws Exception {
 		_createTestTable(true);
 
