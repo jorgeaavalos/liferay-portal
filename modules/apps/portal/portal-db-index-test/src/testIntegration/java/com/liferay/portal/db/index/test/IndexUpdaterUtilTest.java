@@ -358,9 +358,14 @@ public class IndexUpdaterUtilTest {
 
 			try (AutoCloseable autoCloseable =
 					() -> StartupHelperUtil.setUpgrading(upgrading);
-				LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
-					DuplicateUniqueFinderRowsCleaner.class.getName(),
-					LoggerTestUtil.WARN)) {
+				LogCapture duplicateUniqueFinderRowsCleanerLogCapture =
+					LoggerTestUtil.configureLog4JLogger(
+						DuplicateUniqueFinderRowsCleaner.class.getName(),
+						LoggerTestUtil.WARN);
+				LogCapture indexUpdaterUtilLogCapture =
+					LoggerTestUtil.configureLog4JLogger(
+						IndexUpdaterUtil.class.getName(),
+						LoggerTestUtil.WARN)) {
 
 				ReflectionTestUtil.invoke(
 					IndexUpdaterUtil.class, "_updateIndexes",
@@ -368,7 +373,8 @@ public class IndexUpdaterUtilTest {
 					"create unique index IX_TestTable on TestTable(column3" +
 						"[$COLUMN_LENGTH:255$], column4[$COLUMN_LENGTH:255$])");
 
-				List<LogEntry> logEntries = logCapture.getLogEntries();
+				List<LogEntry> logEntries =
+					duplicateUniqueFinderRowsCleanerLogCapture.getLogEntries();
 
 				Assert.assertEquals(
 					logEntries.toString(), 1, logEntries.size());
@@ -382,6 +388,11 @@ public class IndexUpdaterUtilTest {
 						"because it differs from the kept row in columns ",
 						"column5."),
 					logEntry.getMessage());
+
+				logEntries = indexUpdaterUtilLogCapture.getLogEntries();
+
+				Assert.assertEquals(
+					logEntries.toString(), 1, logEntries.size());
 			}
 
 			try (Connection connection = DataAccess.getConnection();
