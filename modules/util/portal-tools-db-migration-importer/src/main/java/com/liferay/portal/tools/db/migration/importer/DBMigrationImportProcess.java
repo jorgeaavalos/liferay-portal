@@ -142,19 +142,14 @@ public class DBMigrationImportProcess {
 			_executorService.submit(
 				() -> {
 					try {
-						DBCopyTablesProcess dbCopyTablesProcess =
-							new DBCopyTablesProcess(
-								_sourceDataSource, _targetDataSource);
-
-						dbCopyTablesProcess.run();
-
-						_dbCopyTablesProcesses.add(dbCopyTablesProcess);
+						new DBCopyTablesProcess(
+							_sourceDataSource, _targetDataSource
+						).run();
 
 						_dataSourceInfos.add(
 							0,
 							_getDataSourceInfo(
-								dbCopyTablesProcess, null, _sourceDataSource,
-								_targetDataSource));
+								null, _sourceDataSource, _targetDataSource));
 					}
 					catch (Exception exception) {
 						throwableCollector.collect(exception);
@@ -177,19 +172,15 @@ public class DBMigrationImportProcess {
 									_targetJDBCURL, _targetPassword,
 									_targetUser, partitionName);
 
-							DBCopyTablesProcess dbCopyTablesProcess =
-								new DBCopyTablesProcess(
-									partitionName, sourceDataSource,
-									targetDataSource);
-
-							dbCopyTablesProcess.run();
-
-							_dbCopyTablesProcesses.add(dbCopyTablesProcess);
+							new DBCopyTablesProcess(
+								partitionName, sourceDataSource,
+								targetDataSource
+							).run();
 
 							_dataSourceInfos.add(
 								_getDataSourceInfo(
-									dbCopyTablesProcess, partitionName,
-									sourceDataSource, targetDataSource));
+									partitionName, sourceDataSource,
+									targetDataSource));
 						}
 						catch (Exception exception) {
 							throwableCollector.collect(exception);
@@ -214,22 +205,6 @@ public class DBMigrationImportProcess {
 
 	private void _createIndexes() throws Exception {
 		_executeFilesSQL("indexes.sql");
-
-		List<Future<?>> futures = new ArrayList<>();
-
-		for (DBCopyTablesProcess dbCopyTablesProcess : _dbCopyTablesProcesses) {
-			futures.add(
-				_executorService.submit(
-					() -> {
-						dbCopyTablesProcess.addCustomPrimaryKeysAndIndexes();
-
-						return null;
-					}));
-		}
-
-		for (Future<?> future : futures) {
-			future.get();
-		}
 	}
 
 	private void _createTables() throws Exception {
@@ -264,17 +239,13 @@ public class DBMigrationImportProcess {
 	}
 
 	private String _getDataSourceInfo(
-			DBCopyTablesProcess dbCopyTablesProcess, String partitionName,
-			DataSource sourceDataSource, DataSource targetDataSource)
+			String partitionName, DataSource sourceDataSource,
+			DataSource targetDataSource)
 		throws Exception {
 
 		if (Validator.isNull(partitionName)) {
 			partitionName = "Default";
 		}
-
-		String customTableAndColumnInfos = StringUtil.merge(
-			dbCopyTablesProcess.getCustomTableAndColumnInfos(),
-			StringPool.NEW_LINE + partitionName + " partition ");
 
 		Set<String> sourceTableNames = _getNames(sourceDataSource, "TABLE");
 		Set<String> sourceViewNames = _getNames(sourceDataSource, "VIEW");
@@ -299,7 +270,6 @@ public class DBMigrationImportProcess {
 					_asymmetricDifference(sourceTableNames, targetTableNames),
 				partitionName + " partition missing target views: " +
 					_asymmetricDifference(sourceViewNames, targetViewNames),
-				partitionName + " partition " + customTableAndColumnInfos,
 				StringPool.NEW_LINE
 			},
 			StringPool.NEW_LINE);
@@ -490,8 +460,6 @@ public class DBMigrationImportProcess {
 	private final List<String> _asyncSQLs = new ArrayList<>();
 	private final List<String> _dataSourceInfos = Collections.synchronizedList(
 		new ArrayList<>());
-	private final List<DBCopyTablesProcess> _dbCopyTablesProcesses =
-		Collections.synchronizedList(new ArrayList<>());
 	private final ExecutorService _executorService =
 		Executors.newFixedThreadPool(5);
 	private final List<String> _partitionNames = new ArrayList<>();

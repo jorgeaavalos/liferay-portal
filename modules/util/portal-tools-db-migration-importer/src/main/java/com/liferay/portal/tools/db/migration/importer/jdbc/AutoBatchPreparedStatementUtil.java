@@ -5,8 +5,6 @@
 
 package com.liferay.portal.tools.db.migration.importer.jdbc;
 
-import com.liferay.portal.kernel.module.framework.ThrowableCollector;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -19,12 +17,10 @@ import java.sql.Statement;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -43,10 +39,7 @@ public class AutoBatchPreparedStatementUtil {
 	}
 
 	public static void start() throws Exception {
-		_executorService = new ThreadPoolExecutor(
-			_THREAD_POOL_SIZE, _THREAD_POOL_SIZE, 0, TimeUnit.SECONDS,
-			new ArrayBlockingQueue<>(_THREAD_POOL_SIZE),
-			new ThreadPoolExecutor.CallerRunsPolicy());
+		_executorService = Executors.newFixedThreadPool(10);
 	}
 
 	public static void stop() throws Exception {
@@ -54,8 +47,6 @@ public class AutoBatchPreparedStatementUtil {
 
 		_executorService.awaitTermination(10, TimeUnit.SECONDS);
 	}
-
-	private static final int _THREAD_POOL_SIZE = 10;
 
 	private static ExecutorService _executorService;
 
@@ -104,7 +95,7 @@ public class AutoBatchPreparedStatementUtil {
 			return _preparedStatement;
 		}
 
-		private void _addBatch() throws Exception {
+		private void _addBatch() throws SQLException {
 			PreparedStatement preparedStatement = getPreparedStatement();
 
 			preparedStatement.addBatch();
@@ -112,7 +103,7 @@ public class AutoBatchPreparedStatementUtil {
 			if (++_count >= ConnectionConfigUtil.getBatchSize()) {
 				_count = 0;
 
-				_executeAsync(preparedStatement);
+				_executeAsync(() -> _executeBatch(preparedStatement));
 			}
 		}
 
@@ -128,66 +119,51 @@ public class AutoBatchPreparedStatementUtil {
 		}
 
 		private void _close() throws Throwable {
-			ThrowableCollector throwableCollector = new ThrowableCollector();
-
 			for (Future<?> future : _futures) {
 				try {
 					future.get();
 				}
-				catch (ExecutionException executionException) {
-					throwableCollector.collect(executionException.getCause());
-				}
-				catch (InterruptedException interruptedException) {
-					throwableCollector.collect(interruptedException);
+				catch (Exception exception) {
+					exception.printStackTrace(System.err);
 				}
 			}
 
 			_cleanUp(_preparedStatement);
 
 			_preparedStatement = null;
-
-			throwableCollector.rethrow();
 		}
 
-		private void _executeAsync(PreparedStatement preparedStatement)
-			throws Exception {
-
-			if (_future != null) {
-				try {
-					_future.get();
-				}
-				catch (ExecutionException executionException) {
-				}
-			}
-
-			_future = _executorService.submit(
-				() -> {
-					try {
-						return preparedStatement.executeBatch();
-					}
-					finally {
-						_cleanUp(preparedStatement);
-					}
-				});
-
-			_futures.add(_future);
+		private void _executeAsync(Runnable runnable) {
+			_futures.add(_executorService.submit(runnable));
 
 			_preparedStatement = null;
 		}
 
-		private int[] _executeBatch() throws Exception {
+		private int[] _executeBatch() throws SQLException {
 			if (_count > 0) {
 				_count = 0;
 
-				_executeAsync(getPreparedStatement());
+				PreparedStatement preparedStatement = getPreparedStatement();
+
+				_executeAsync(() -> _executeBatch(preparedStatement));
 			}
 
 			return new int[0];
 		}
 
+		private void _executeBatch(PreparedStatement preparedStatement) {
+			try {
+				preparedStatement.executeBatch();
+			}
+			catch (Exception exception) {
+				exception.printStackTrace(System.err);
+
+				throw new RuntimeException(exception);
+			}
+		}
+
 		private final Connection _connection;
 		private int _count;
-		private Future<?> _future;
 		private final Set<Future<?>> _futures = Collections.newSetFromMap(
 			new ConcurrentHashMap<>());
 		private PreparedStatement _preparedStatement;
