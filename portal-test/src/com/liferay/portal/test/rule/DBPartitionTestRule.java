@@ -7,9 +7,8 @@ package com.liferay.portal.test.rule;
 
 import com.liferay.petra.string.CharPool;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.model.VirtualHost;
+import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
-import com.liferay.portal.kernel.service.VirtualHostLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
@@ -34,11 +33,10 @@ public class DBPartitionTestRule implements TestRule {
 		}
 
 		try {
-			VirtualHost virtualHost =
-				VirtualHostLocalServiceUtil.fetchVirtualHost(
-					TestPropsValues.COMPANY_WEB_ID);
+			Company company = CompanyLocalServiceUtil.fetchCompanyByVirtualHost(
+				TestPropsValues.COMPANY_WEB_ID);
 
-			if (virtualHost != null) {
+			if (company != null) {
 				return statement;
 			}
 
@@ -58,25 +56,23 @@ public class DBPartitionTestRule implements TestRule {
 					null, companyWebId, companyWebId, companyWebId, 0, true,
 					true, null, null, null, null, null, null));
 
-			virtualHost = VirtualHostLocalServiceUtil.getVirtualHost(
+			company = CompanyLocalServiceUtil.fetchCompanyByVirtualHost(
 				companyWebId);
 
 			if (TestPropsValues.DATABASE_PARTITION_COPY) {
 				CompanyLocalServiceUtil.copyDBPartitionCompany(
-					virtualHost.getCompanyId(), null,
+					company.getCompanyId(), null,
 					TestPropsValues.COMPANY_WEB_ID,
 					TestPropsValues.COMPANY_WEB_ID,
 					TestPropsValues.COMPANY_WEB_ID);
 			}
 			else if (TestPropsValues.DATABASE_PARTITION_EXPORT_AND_IMPORT) {
-				CompanyLocalServiceUtil.exportCompany(
-					virtualHost.getCompanyId());
+				CompanyLocalServiceUtil.exportCompany(company.getCompanyId());
 
-				CompanyLocalServiceUtil.deleteCompany(
-					virtualHost.getCompanyId());
+				CompanyLocalServiceUtil.deleteCompany(company.getCompanyId());
 
 				CompanyLocalServiceUtil.addDBPartitionCompany(
-					virtualHost.getCompanyId(), TestPropsValues.COMPANY_WEB_ID,
+					company.getCompanyId(), TestPropsValues.COMPANY_WEB_ID,
 					TestPropsValues.COMPANY_WEB_ID,
 					TestPropsValues.COMPANY_WEB_ID);
 			}

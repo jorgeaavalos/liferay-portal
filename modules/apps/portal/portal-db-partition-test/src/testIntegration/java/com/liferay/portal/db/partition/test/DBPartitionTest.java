@@ -13,7 +13,6 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.db.partition.test.util.BaseDBPartitionTestCase;
 import com.liferay.portal.db.partition.util.DBPartitionUtil;
 import com.liferay.portal.events.StartupHelperUtil;
-import com.liferay.portal.kernel.dao.db.DBType;
 import com.liferay.portal.kernel.dao.orm.EntityCacheUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.instance.PortalInstancePool;
@@ -33,7 +32,6 @@ import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.InfrastructureUtil;
-import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.model.impl.ClassNameImpl;
 import com.liferay.portal.model.impl.ResourceActionImpl;
 import com.liferay.portal.service.impl.ClassNameLocalServiceImpl;
@@ -429,6 +427,45 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 	}
 
 	@Test
+	public void testCounterRename() throws Exception {
+		try (SafeCloseable safeCloseable =
+				CompanyThreadLocal.setCompanyIdWithSafeCloseable(
+					COMPANY_IDS[0])) {
+
+			try {
+				DBPartitionUtil.forEachCompanyId(
+					companyId -> _counterLocalService.increment(_CLASS_NAME));
+
+				_counterLocalService.rename(_CLASS_NAME, _CLASS_NAME + ".test");
+
+				DBPartitionUtil.forEachCompanyId(
+					companyId -> {
+						List<String> counterNames =
+							_counterLocalService.getNames();
+
+						if (companyId.equals(COMPANY_IDS[0])) {
+							Assert.assertFalse(
+								counterNames.contains(_CLASS_NAME));
+							Assert.assertTrue(
+								counterNames.contains(_CLASS_NAME + ".test"));
+						}
+						else {
+							Assert.assertFalse(
+								counterNames.contains(_CLASS_NAME + ".test"));
+							Assert.assertTrue(
+								counterNames.contains(_CLASS_NAME));
+						}
+					});
+			}
+			finally {
+				DBPartitionUtil.forEachCompanyId(
+					companyId -> _counterLocalService.reset(
+						_CLASS_NAME + ".test"));
+			}
+		}
+	}
+
+	@Test
 	public void testCounterReset() throws Exception {
 		try (SafeCloseable safeCloseable =
 				CompanyThreadLocal.setCompanyIdWithSafeCloseable(
@@ -481,8 +518,12 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 	@Test
 	public void testDatabasePartitionSchemaNamePrefixes() throws Exception {
 		String[] databasePartitionSchemaNamePrefixes = {
-			DBPartitionUtil.DATABASE_EXPORTED_PARTITION_SCHEMA_NAME_PREFIX,
-			PropsValues.DATABASE_PARTITION_SCHEMA_NAME_PREFIX
+			ReflectionTestUtil.getFieldValue(
+				DBPartitionUtil.class,
+				"_DATABASE_EXPORTED_PARTITION_SCHEMA_NAME_PREFIX"),
+			ReflectionTestUtil.getFieldValue(
+				DBPartitionUtil.class,
+				"_DATABASE_EXPORTED_PARTITION_SCHEMA_NAME_PREFIX")
 		};
 
 		for (String databasePartitionSchemaNamePrefix :
@@ -525,66 +566,6 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 	}
 
 	@Test
-	public void testDefaultPartitionName() throws Exception {
-		_testDefaultPartitionName(
-			"drop view if exists " + defaultPartitionName + " .TestView", true);
-		_testDefaultPartitionName(
-			"drop view if exists " + defaultPartitionName + ".TestView", true);
-		_testDefaultPartitionName(
-			"drop view if exists " + defaultPartitionName + "/**/.TestView",
-			true);
-		_testDefaultPartitionName(
-			StringBundler.concat(
-				"drop view if exists ", defaultPartitionName, " -- ",
-				RandomTestUtil.randomString(), "\n.TestView"),
-			true);
-
-		if (db.getDBType() == DBType.POSTGRESQL) {
-			_testDefaultPartitionName(
-				"drop view if exists \"" + defaultPartitionName + "\".TestView",
-				true);
-			_testDefaultPartitionName(
-				"set search_path to " + defaultPartitionName, true);
-			_testDefaultPartitionName(
-				StringBundler.concat(
-					"drop view if exists ", dbInspector.getCatalog(), ".",
-					defaultPartitionName, ".TestView"),
-				true);
-		}
-		else {
-			_testDefaultPartitionName(
-				"/* ' */ use " + defaultPartitionName + " /* ' */", true);
-			_testDefaultPartitionName(
-				"drop view if exists `" + defaultPartitionName + "`.TestView",
-				true);
-			_testDefaultPartitionName("use " + defaultPartitionName, true);
-		}
-
-		_testDefaultPartitionName(
-			StringBundler.concat(
-				"delete from ClassName_ where value = '",
-				RandomTestUtil.randomString(), ".", defaultPartitionName, ".",
-				RandomTestUtil.randomString(), "'"),
-			false);
-		_testDefaultPartitionName(
-			StringBundler.concat(
-				"delete from ClassName_ where value = '",
-				RandomTestUtil.randomString(100000), "'"),
-			false);
-		_testDefaultPartitionName(
-			StringBundler.concat(
-				"delete from ClassName_ where value = 'This is ",
-				defaultPartitionName, ". ", RandomTestUtil.randomString(), "'"),
-			false);
-		_testDefaultPartitionName(
-			StringBundler.concat(
-				"delete from ClassName_ where value = 'https://",
-				defaultPartitionName, ".com/", RandomTestUtil.randomString(),
-				"'"),
-			false);
-	}
-
-	@Test
 	public void testDeployRemotePortlet() throws Exception {
 		String portletName = RandomTestUtil.randomString();
 
@@ -600,7 +581,7 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 		finally {
 			Portlet portlet = _portletLocalService.getPortletById(portletName);
 
-			_portletLocalService.destroyPortlet(portlet);
+			_portletLocalService.destroyRemotePortlet(portlet);
 		}
 
 		try {
@@ -646,7 +627,7 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 						companyId, portletName);
 
 					if (portlet != null) {
-						_portletLocalService.destroyPortlet(portlet);
+						_portletLocalService.destroyRemotePortlet(portlet);
 					}
 				});
 		}
@@ -698,18 +679,6 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 	}
 
 	@Test
-	public void testGetClassNameIdSupplier() throws Exception {
-		_assertClassNameIds(
-			classNameIds -> {
-				Supplier<Long> classNameIdSupplier =
-					_classNameLocalService.getClassNameIdSupplier(
-						"class.name.test");
-
-				classNameIds.add(classNameIdSupplier.get());
-			});
-	}
-
-	@Test
 	public void testGetClassNameIdsSupplier() throws Exception {
 		_assertClassNameIds(
 			classNameIds -> {
@@ -720,6 +689,18 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 				for (long classNameId : classNameIdsSupplier.get()) {
 					classNameIds.add(classNameId);
 				}
+			});
+	}
+
+	@Test
+	public void testGetClassNameIdSupplier() throws Exception {
+		_assertClassNameIds(
+			classNameIds -> {
+				Supplier<Long> classNameIdSupplier =
+					_classNameLocalService.getClassNameIdSupplier(
+						"class.name.test");
+
+				classNameIds.add(classNameIdSupplier.get());
 			});
 	}
 
@@ -826,44 +807,6 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 	}
 
 	@Test
-	public void testUpdateIndexOnControlTable() throws Exception {
-		DataSource dataSource = InfrastructureUtil.getDataSource();
-
-		DBPartitionUtil.forEachCompanyId(
-			companyId -> {
-				try (Connection connection = dataSource.getConnection();
-					LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
-						"com.liferay.portal.dao.db.BaseDB",
-						LoggerTestUtil.INFO)) {
-
-					db.updateIndexes(
-						connection, "Company",
-						"create index " + TEST_INDEX_NAME +
-							" on Company (userId, companyId);",
-						false);
-
-					List<LogEntry> logEntries = logCapture.getLogEntries();
-
-					long expectedLogEntriesCount = 0;
-
-					if (companyId == PortalInstancePool.getDefaultCompanyId()) {
-						expectedLogEntriesCount = 1;
-					}
-
-					Assert.assertEquals(
-						logEntries.toString(), expectedLogEntriesCount,
-						logEntries.size());
-				}
-				finally {
-					if (dbInspector.hasIndex("Company", TEST_INDEX_NAME)) {
-						db.runSQL(
-							"drop index " + TEST_INDEX_NAME + " on Company");
-					}
-				}
-			});
-	}
-
-	@Test
 	public void testUpdateIndexes() throws Exception {
 		DataSource dataSource = InfrastructureUtil.getDataSource();
 
@@ -889,6 +832,44 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 			DBPartitionUtil.forEachCompanyId(
 				companyId -> dropTable(TEST_TABLE_NAME));
 		}
+	}
+
+	@Test
+	public void testUpdateIndexOnControlTable() throws Exception {
+		DataSource dataSource = InfrastructureUtil.getDataSource();
+
+		DBPartitionUtil.forEachCompanyId(
+			companyId -> {
+				try (Connection connection = dataSource.getConnection();
+					LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+						"com.liferay.portal.dao.db.BaseDB",
+						LoggerTestUtil.INFO)) {
+
+					db.updateIndexes(
+						connection, "Company",
+						"create index " + TEST_INDEX_NAME +
+							" on Company (logoId, companyId);",
+						false);
+
+					List<LogEntry> logEntries = logCapture.getLogEntries();
+
+					long expectedLogEntriesCount = 0;
+
+					if (companyId == PortalInstancePool.getDefaultCompanyId()) {
+						expectedLogEntriesCount = 1;
+					}
+
+					Assert.assertEquals(
+						logEntries.toString(), expectedLogEntriesCount,
+						logEntries.size());
+				}
+				finally {
+					if (dbInspector.hasIndex("Company", TEST_INDEX_NAME)) {
+						db.runSQL(
+							"drop index " + TEST_INDEX_NAME + " on Company");
+					}
+				}
+			});
 	}
 
 	@Test
@@ -962,54 +943,6 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 			_portletLocalService.deployRemotePortlet(
 				new long[] {companyId}, portlet,
 				new String[] {"category.hidden"}, true, true);
-		}
-	}
-
-	private void _testDefaultPartitionName(String sql, boolean unsupported)
-		throws Exception {
-
-		try (SafeCloseable safeCloseable =
-				CompanyThreadLocal.setCompanyIdWithSafeCloseable(
-					CompanyConstants.SYSTEM)) {
-
-			db.runSQL(sql);
-		}
-
-		try (SafeCloseable safeCloseable =
-				CompanyThreadLocal.setCompanyIdWithSafeCloseable(
-					PortalInstancePool.getDefaultCompanyId())) {
-
-			db.runSQL(sql);
-		}
-
-		try (SafeCloseable safeCloseable =
-				CompanyThreadLocal.setCompanyIdWithSafeCloseable(
-					COMPANY_IDS[0])) {
-
-			db.runSQL(sql);
-
-			Assert.assertFalse(unsupported);
-		}
-		catch (UnsupportedOperationException unsupportedOperationException) {
-			Assert.assertTrue(unsupported);
-			Assert.assertEquals(
-				"Unsupported SQL: " + sql,
-				unsupportedOperationException.getMessage());
-		}
-
-		try (SafeCloseable safeCloseable =
-				CompanyThreadLocal.setCompanyIdWithSafeCloseable(
-					COMPANY_IDS[0]);
-			PreparedStatement preparedStatement = connection.prepareStatement(
-				sql)) {
-
-			Assert.assertFalse(unsupported);
-		}
-		catch (UnsupportedOperationException unsupportedOperationException) {
-			Assert.assertTrue(unsupported);
-			Assert.assertEquals(
-				"Unsupported SQL: " + sql,
-				unsupportedOperationException.getMessage());
 		}
 	}
 

@@ -15,18 +15,17 @@ import com.liferay.portal.db.partition.util.DBPartitionUtil;
 import com.liferay.portal.kernel.dao.jdbc.AutoBatchPreparedStatementUtil;
 import com.liferay.portal.kernel.dao.jdbc.DataAccess;
 import com.liferay.portal.kernel.instance.PortalInstancePool;
+import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.CompanyConstants;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.GroupConstants;
-import com.liferay.portal.kernel.model.VirtualHost;
 import com.liferay.portal.kernel.module.util.BundleUtil;
+import com.liferay.portal.kernel.module.util.SystemBundleUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.GroupLocalServiceUtil;
-import com.liferay.portal.kernel.service.VirtualHostLocalService;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.AssumeTestRule;
 import com.liferay.portal.kernel.test.rule.DataGuard;
-import com.liferay.portal.kernel.test.util.BundleContextTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
@@ -35,7 +34,6 @@ import com.liferay.portal.kernel.util.InfrastructureUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.test.log.LogCapture;
 import com.liferay.portal.test.log.LoggerTestUtil;
-import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portal.test.rule.TransactionalTestRule;
@@ -85,27 +83,20 @@ public class UpgradePartitionedConfigurationTableTest
 
 	@Test
 	public void testUpgradeProcess() throws Exception {
-		try (SafeCloseable safeCloseable =
-				CompanyThreadLocal.setCompanyIdWithSafeCloseable(_companyId)) {
-
-			for (long companyId : PortalInstancePool.getCompanyIds()) {
-				if (companyId == _companyId) {
-					continue;
-				}
-
-				String partitionName = getPartitionName(companyId);
-
-				db.runSQL(
-					dbPartitionDB.getDropTableSQL(
-						partitionName, "Configuration_"));
-				db.runSQL(
-					dbPartitionDB.getCreateViewSQL(
-						defaultPartitionName, partitionName, "Configuration_"));
-			}
-		}
-
-		VirtualHost virtualHost = _virtualHostLocalService.getVirtualHost(
+		Company company = companyLocalService.fetchCompanyByVirtualHost(
 			TestPropsValues.COMPANY_WEB_ID);
+
+		DBPartitionUtil.forEachCompanyId(
+			companyId -> {
+				if (companyId != _companyId) {
+					db.runSQL("drop table if exists Configuration_");
+					db.runSQL(
+						StringBundler.concat(
+							"create or replace view Configuration_ as select ",
+							"* from ", defaultPartitionName,
+							".Configuration_"));
+				}
+			});
 
 		Map<Long, ConfigurationEntry> validConfigurationEntries =
 			HashMapBuilder.<Long, ConfigurationEntry>put(
@@ -118,20 +109,20 @@ public class UpgradePartitionedConfigurationTableTest
 					ExtendedObjectClassDefinition.Scope.PORTLET_INSTANCE,
 					RandomTestUtil.randomLong())
 			).put(
-				virtualHost.getCompanyId(),
+				company.getCompanyId(),
 				() -> {
 					Group group = GroupLocalServiceUtil.getGroup(
-						virtualHost.getCompanyId(), GroupConstants.GUEST);
+						company.getCompanyId(), GroupConstants.GUEST);
 
 					return new ConfigurationEntry(
 						ExtendedObjectClassDefinition.Scope.GROUP,
 						group.getGroupId());
 				}
 			).put(
-				virtualHost.getCompanyId(),
+				company.getCompanyId(),
 				new ConfigurationEntry(
 					ExtendedObjectClassDefinition.Scope.COMPANY,
-					virtualHost.getCompanyId())
+					company.getCompanyId())
 			).build();
 
 		long randomCompanyId = RandomTestUtil.randomLong();
@@ -183,8 +174,7 @@ public class UpgradePartitionedConfigurationTableTest
 			}
 
 			Bundle bundle = BundleUtil.getBundle(
-				BundleContextTestUtil.getBundleContext(
-					UpgradePartitionedConfigurationTableTest.class),
+				SystemBundleUtil.getBundleContext(),
 				"com.liferay.portal.configuration.persistence.impl");
 
 			Class<?> upgradeProcessClass = bundle.loadClass(
@@ -300,9 +290,6 @@ public class UpgradePartitionedConfigurationTableTest
 
 	private static long _companyId;
 	private static DataSource _dataSource;
-
-	@Inject
-	private VirtualHostLocalService _virtualHostLocalService;
 
 	private class ConfigurationEntry {
 

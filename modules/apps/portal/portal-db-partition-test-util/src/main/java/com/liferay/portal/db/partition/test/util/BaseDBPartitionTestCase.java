@@ -76,19 +76,35 @@ public abstract class BaseDBPartitionTestCase {
 	}
 
 	protected static void addDBPartitions() throws Exception {
-		for (long companyId : COMPANY_IDS) {
-			DBPartitionUtil.addDBPartition(companyId);
+		CurrentConnection defaultCurrentConnection =
+			CurrentConnectionUtil.getCurrentConnection();
 
-			PortalInstancePool.add(
-				new CompanyImpl() {
-					{
-						setCompanyId(companyId);
-						setWebId("Test" + companyId);
-					}
-				});
+		try {
+			CurrentConnection currentConnection = dataSource -> connection;
+
+			ReflectionTestUtil.setFieldValue(
+				CurrentConnectionUtil.class, "_currentConnection",
+				currentConnection);
+
+			for (long companyId : COMPANY_IDS) {
+				DBPartitionUtil.addDBPartition(companyId);
+
+				PortalInstancePool.add(
+					new CompanyImpl() {
+						{
+							setCompanyId(companyId);
+							setWebId("Test" + companyId);
+						}
+					});
+			}
+
+			_clearCaches(COMPANY_IDS);
 		}
-
-		_clearCaches(COMPANY_IDS);
+		finally {
+			ReflectionTestUtil.setFieldValue(
+				CurrentConnectionUtil.class, "_currentConnection",
+				defaultCurrentConnection);
+		}
 	}
 
 	protected static void createControlTable(String tableName)
@@ -204,6 +220,12 @@ public abstract class BaseDBPartitionTestCase {
 			" (testColumn bigint primary key, companyId bigint)";
 	}
 
+	protected static String getExportedPartitionName(long companyId) {
+		return ReflectionTestUtil.invoke(
+			DBPartitionUtil.class, "_getExportedPartitionName",
+			new Class<?>[] {long.class}, companyId);
+	}
+
 	protected static String getPartitionName(long companyId) {
 		if (companyId == PortalInstancePool.getDefaultCompanyId()) {
 			return defaultPartitionName;
@@ -213,8 +235,24 @@ public abstract class BaseDBPartitionTestCase {
 	}
 
 	protected static void importDBPartitions() throws Exception {
-		for (long companyId : COMPANY_IDS) {
-			DBPartitionUtil.importDBPartition(companyId, null, null);
+		CurrentConnection defaultCurrentConnection =
+			CurrentConnectionUtil.getCurrentConnection();
+
+		try {
+			CurrentConnection currentConnection = dataSource -> connection;
+
+			ReflectionTestUtil.setFieldValue(
+				CurrentConnectionUtil.class, "_currentConnection",
+				currentConnection);
+
+			for (long companyId : COMPANY_IDS) {
+				DBPartitionUtil.importDBPartition(companyId);
+			}
+		}
+		finally {
+			ReflectionTestUtil.setFieldValue(
+				CurrentConnectionUtil.class, "_currentConnection",
+				defaultCurrentConnection);
 		}
 	}
 

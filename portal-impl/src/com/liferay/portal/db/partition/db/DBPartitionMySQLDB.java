@@ -35,8 +35,11 @@ public class DBPartitionMySQLDB implements DBPartitionDB {
 			Connection connection, String partitionName)
 		throws SQLException {
 
-		return _getCreatePartitionSQL(
-			connection, "create schema ", partitionName);
+		DB db = DBManagerUtil.getDB();
+
+		return StringBundler.concat(
+			"create schema if not exists ", partitionName, " character set ",
+			db.getCharacterSet(connection));
 	}
 
 	@Override
@@ -75,9 +78,7 @@ public class DBPartitionMySQLDB implements DBPartitionDB {
 		List<String> renamePartitionSQLs = new ArrayList<>();
 
 		renamePartitionSQLs.add(
-			_getCreatePartitionSQL(
-				connection, "create schema if not exists ",
-				targetPartitionName));
+			getCreatePartitionSQL(connection, targetPartitionName));
 
 		DatabaseMetaData databaseMetaData = connection.getMetaData();
 
@@ -113,17 +114,6 @@ public class DBPartitionMySQLDB implements DBPartitionDB {
 		throws SQLException {
 
 		connection.setCatalog(partitionName);
-	}
-
-	private String _getCreatePartitionSQL(
-			Connection connection, String createSchemaSQL, String partitionName)
-		throws SQLException {
-
-		DB db = DBManagerUtil.getDB();
-
-		return StringBundler.concat(
-			createSchemaSQL, partitionName, " character set ",
-			db.getCharacterSet(connection));
 	}
 
 	private static String _defaultPartitionName;

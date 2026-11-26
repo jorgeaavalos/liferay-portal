@@ -47,26 +47,11 @@ public class DBPartitionPostgreSQLDB implements DBPartitionDB {
 	}
 
 	@Override
-	public boolean existsPartition(Connection connection, String partitionName)
-		throws SQLException {
-
-		try (PreparedStatement preparedStatement = connection.prepareStatement(
-				"select 1 from pg_namespace where nspname = ?")) {
-
-			preparedStatement.setString(1, partitionName);
-
-			try (ResultSet resultSet = preparedStatement.executeQuery()) {
-				return resultSet.next();
-			}
-		}
-	}
-
-	@Override
 	public String getCreatePartitionSQL(
 			Connection connection, String partitionName)
 		throws SQLException {
 
-		return "create schema " + partitionName;
+		return "create schema if not exists " + partitionName;
 	}
 
 	@Override

@@ -6,8 +6,8 @@
 package com.liferay.portal.db.partition.upgrade.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
-import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.db.partition.test.util.BaseDBPartitionTestCase;
 import com.liferay.portal.db.partition.util.DBPartitionUtil;
 import com.liferay.portal.kernel.instance.PortalInstancePool;
@@ -19,6 +19,7 @@ import com.liferay.portal.upgrade.util.UpgradePartitionedControlTable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 import javax.sql.DataSource;
 
@@ -108,22 +109,29 @@ public class UpgradePartitionedControlTableTest
 	}
 
 	private void _createViewSQL(String viewName) throws Exception {
-		long defaultCompanyId = PortalInstancePool.getDefaultCompanyId();
+		DataSource dataSource = InfrastructureUtil.getDataSource();
 
-		try (SafeCloseable safeCloseable =
-				CompanyThreadLocal.setCompanyIdWithSafeCloseable(
-					defaultCompanyId)) {
+		try (Connection connection = dataSource.getConnection();
 
-			for (long companyId : PortalInstancePool.getCompanyIds()) {
-				if (companyId == defaultCompanyId) {
-					continue;
-				}
+			Statement statement = connection.createStatement()) {
 
-				db.runSQL(
-					dbPartitionDB.getCreateViewSQL(
-						defaultPartitionName, getPartitionName(companyId),
-						viewName));
-			}
+			String defaultSchemaName = dbPartitionDB.getDefaultPartitionName(
+				connection);
+
+			DBPartitionUtil.forEachCompanyId(
+				companyId -> {
+					if (PortalInstancePool.getDefaultCompanyId() ==
+							CompanyThreadLocal.getNonsystemCompanyId()) {
+
+						return;
+					}
+
+					statement.execute(
+						StringBundler.concat(
+							"create or replace view ", viewName,
+							" as select * from ", defaultSchemaName,
+							StringPool.PERIOD, viewName));
+				});
 		}
 	}
 

@@ -69,8 +69,12 @@ public class DBPartitionMessageBusInterceptor implements MessageBusInterceptor {
 	}
 
 	@Activate
-	@Modified
 	protected void activate(Map<String, Object> properties) {
+		modified(properties);
+	}
+
+	@Modified
+	protected void modified(Map<String, Object> properties) {
 		DBPartitionConfiguration dbPartitionConfiguration =
 			ConfigurableUtil.createConfigurable(
 				DBPartitionConfiguration.class, properties);
