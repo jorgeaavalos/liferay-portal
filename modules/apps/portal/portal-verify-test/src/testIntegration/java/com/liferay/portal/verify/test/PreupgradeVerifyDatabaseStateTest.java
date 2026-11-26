@@ -168,7 +168,7 @@ public class PreupgradeVerifyDatabaseStateTest
 
 	@Test
 	public void testVerifyPreupgradeMissingColumnName() throws Exception {
-		alterColumnName("UserTracker", "companyId", "companyId_backup");
+		alterColumnName("UserTracker", "companyId", "companyId_backup LONG");
 
 		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
 				PreupgradeVerifyDatabaseState.class.getName(),
@@ -187,7 +187,8 @@ public class PreupgradeVerifyDatabaseStateTest
 				exception.getMessage());
 		}
 		finally {
-			alterColumnName("UserTracker", "companyId_backup", "companyId");
+			alterColumnName(
+				"UserTracker", "companyId_backup", "companyId LONG");
 		}
 	}
 

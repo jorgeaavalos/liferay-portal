@@ -88,7 +88,7 @@ public class PostUpgradeVerifyDatabaseStateTest
 
 	@Test
 	public void testGetErrorMessages() throws Exception {
-		alterColumnName("UserTracker", "companyId", "companyId_backup");
+		alterColumnName("UserTracker", "companyId", "companyId_backup LONG");
 
 		try {
 			_testGetMessages(
@@ -102,7 +102,8 @@ public class PostUpgradeVerifyDatabaseStateTest
 					getNormalizedName("companyId")));
 		}
 		finally {
-			alterColumnName("UserTracker", "companyId_backup", "companyId");
+			alterColumnName(
+				"UserTracker", "companyId_backup", "companyId LONG");
 		}
 	}
 
@@ -128,7 +129,8 @@ public class PostUpgradeVerifyDatabaseStateTest
 
 	@Test
 	public void testVerifyPostUpgradeColumns() throws Exception {
-		alterColumnName("UserTracker", "remoteAddr", "remoteAddr_backup");
+		alterColumnName(
+			"UserTracker", "remoteAddr", "remoteAddr_backup VARCHAR(75) null");
 
 		try {
 			_testVerifyMessages(
@@ -146,7 +148,9 @@ public class PostUpgradeVerifyDatabaseStateTest
 					getNormalizedName("remoteAddr_backup")));
 		}
 		finally {
-			alterColumnName("UserTracker", "remoteAddr_backup", "remoteAddr");
+			alterColumnName(
+				"UserTracker", "remoteAddr_backup",
+				"remoteAddr VARCHAR(75) null");
 		}
 
 		alterColumnType("Address", "city", "VARCHAR(100)");

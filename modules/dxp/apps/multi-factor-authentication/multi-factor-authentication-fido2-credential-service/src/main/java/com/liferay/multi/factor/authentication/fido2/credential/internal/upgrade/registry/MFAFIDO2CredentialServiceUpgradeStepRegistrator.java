@@ -23,7 +23,8 @@ public class MFAFIDO2CredentialServiceUpgradeStepRegistrator
 		registry.register(
 			"1.0.0", "2.0.0",
 			UpgradeProcessFactory.alterColumnName(
-				"MFAFIDO2CredentialEntry", "publicKeyCode", "publicKeyCOSE"));
+				"MFAFIDO2CredentialEntry", "publicKeyCode",
+				"publicKeyCOSE VARCHAR(128) null"));
 
 		registry.register(
 			"2.0.0", "2.1.0", new MFAFIDO2CredentialUpgradeProcess());

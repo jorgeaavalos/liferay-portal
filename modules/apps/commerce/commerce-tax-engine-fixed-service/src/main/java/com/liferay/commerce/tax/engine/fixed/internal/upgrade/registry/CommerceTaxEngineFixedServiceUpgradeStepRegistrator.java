@@ -24,10 +24,10 @@ public class CommerceTaxEngineFixedServiceUpgradeStepRegistrator
 			"1.0.0", "2.0.0",
 			UpgradeProcessFactory.alterColumnName(
 				"CommerceTaxFixedRateAddressRel", "commerceCountryId",
-				"countryId"),
+				"countryId LONG"),
 			UpgradeProcessFactory.alterColumnName(
 				"CommerceTaxFixedRateAddressRel", "commerceRegionId",
-				"regionId"));
+				"regionId LONG"));
 
 		registry.register(
 			"2.0.0", "2.1.0",

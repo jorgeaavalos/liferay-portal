@@ -105,13 +105,14 @@ public class UpgradeProcessFactoryTest {
 	@Test
 	public void testAlterColumnName() throws Exception {
 		UpgradeProcess upgradeProcess = UpgradeProcessFactory.alterColumnName(
-			_TABLE_NAME_1, "typeLong", "newTypeLong");
+			_TABLE_NAME_1, "typeLong", "newTypeLong LONG null");
 
 		_assertUpgrade(
 			UpgradeProcessFactoryTest.class,
 			StringBundler.concat(
 				"Modifying table ", _TABLE_NAME_1,
-				" to alter the name of the column typeLong to newTypeLong"),
+				" to alter the name of the column typeLong to newTypeLong ",
+				"LONG null"),
 			upgradeProcess);
 
 		Assert.assertTrue(
@@ -245,7 +246,8 @@ public class UpgradeProcessFactoryTest {
 			protected UpgradeStep[] getPostUpgradeSteps() {
 				return new UpgradeStep[] {
 					UpgradeProcessFactory.alterColumnName(
-						_TABLE_NAME_1, "newColumn", "newColumnModified")
+						_TABLE_NAME_1, "newColumn",
+						"newColumnModified LONG null")
 				};
 			}
 
@@ -285,7 +287,7 @@ public class UpgradeProcessFactoryTest {
 			StringBundler.concat(
 				"Modifying table ", _TABLE_NAME_1,
 				" to alter the name of the column newColumn to ",
-				"newColumnModified"),
+				"newColumnModified LONG null"),
 			(UpgradeProcess)upgradeSteps[3]);
 
 		Assert.assertTrue(

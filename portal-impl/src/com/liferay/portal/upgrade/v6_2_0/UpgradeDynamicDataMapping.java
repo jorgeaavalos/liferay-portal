@@ -66,7 +66,7 @@ public class UpgradeDynamicDataMapping extends UpgradeProcess {
 	protected void updateSchema() throws Exception {
 		try (LoggingTimer loggingTimer = new LoggingTimer()) {
 			alterTableAddColumn("DDMTemplate", "classNameId", "LONG");
-			alterColumnName("DDMTemplate", "structureId", "classPK");
+			alterColumnName("DDMTemplate", "structureId", "classPK LONG");
 
 			long classNameId = PortalUtil.getClassNameId(
 				"com.liferay.portlet.dynamicdatamapping.model.DDMStructure");

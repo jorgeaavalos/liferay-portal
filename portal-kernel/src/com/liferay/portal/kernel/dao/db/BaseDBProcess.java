@@ -10,7 +10,6 @@ import com.liferay.petra.function.UnsafeConsumer;
 import com.liferay.petra.function.UnsafeFunction;
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.reflect.ReflectionUtil;
-import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.jdbc.AutoBatchPreparedStatementUtil;
@@ -193,25 +192,17 @@ public abstract class BaseDBProcess implements DBProcess {
 	}
 
 	protected void alterColumnName(
-			String tableName, String oldColumnName, String newColumnName)
+			String tableName, String oldColumnName, String newColumnDefinition)
 		throws Exception {
 
-		int index = newColumnName.indexOf(CharPool.SPACE);
+		String newColumnName = StringUtil.extractFirst(
+			newColumnDefinition, StringPool.SPACE);
 
-		if (index != -1) {
-			if (_log.isWarnEnabled()) {
-				_log.warn(
-					StringBundler.concat(
-						"Ignoring column definition \"", newColumnName,
-						"\" passed as the new name of ", tableName,
-						StringPool.PERIOD, oldColumnName));
-			}
-
-			newColumnName = newColumnName.substring(0, index);
-		}
+		String newColumnType = newColumnDefinition.substring(
+			newColumnName.length() + 1);
 
 		if (!hasColumn(tableName, oldColumnName)) {
-			if (hasColumn(tableName, newColumnName)) {
+			if (hasColumnType(tableName, newColumnName, newColumnType)) {
 				return;
 			}
 
@@ -219,6 +210,14 @@ public abstract class BaseDBProcess implements DBProcess {
 				StringBundler.concat(
 					"Column ", tableName, StringPool.PERIOD, oldColumnName,
 					" does not exist"));
+		}
+
+		if (!hasColumnType(tableName, oldColumnName, newColumnType)) {
+			throw new SQLException(
+				StringBundler.concat(
+					"Type change is not allowed when altering column name. ",
+					"Column ", tableName, StringPool.PERIOD, oldColumnName,
+					" has different type than ", newColumnType));
 		}
 
 		DBInspector dbInspector = new DBInspector(connection);
@@ -232,7 +231,8 @@ public abstract class BaseDBProcess implements DBProcess {
 
 		DB db = DBManagerUtil.getDB();
 
-		db.alterColumnName(connection, tableName, oldColumnName, newColumnName);
+		db.alterColumnName(
+			connection, tableName, oldColumnName, newColumnDefinition);
 	}
 
 	protected void alterColumnType(

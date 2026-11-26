@@ -202,7 +202,7 @@ public class CommerceServiceUpgradeStepRegistrator
 				"CommerceOrderItem", "bookedQuantityId LONG"),
 			UpgradeProcessFactory.alterColumnName(
 				"CommerceShipmentItem", "commerceWarehouseId",
-				"commerceInventoryWarehouseId"));
+				"commerceInventoryWarehouseId LONG"));
 
 		registry.register(
 			"4.0.0", "4.0.1",
@@ -329,12 +329,12 @@ public class CommerceServiceUpgradeStepRegistrator
 		registry.register(
 			"4.10.0", "5.0.0",
 			UpgradeProcessFactory.alterColumnName(
-				"CommerceAddress", "commerceCountryId", "countryId"),
+				"CommerceAddress", "commerceCountryId", "countryId LONG"),
 			UpgradeProcessFactory.alterColumnName(
-				"CommerceAddress", "commerceRegionId", "regionId"),
+				"CommerceAddress", "commerceRegionId", "regionId LONG"),
 			UpgradeProcessFactory.alterColumnName(
 				"CommerceAddressRestriction", "commerceCountryId",
-				"countryId"));
+				"countryId LONG"));
 
 		registry.register(
 			"5.0.0", "5.0.1",
@@ -711,7 +711,7 @@ public class CommerceServiceUpgradeStepRegistrator
 			"10.2.0", "11.0.0",
 			UpgradeProcessFactory.alterColumnName(
 				CommerceOrderItemModelImpl.TABLE_NAME, "bookedQuantityId",
-				"CIBookedQuantityId"));
+				"CIBookedQuantityId LONG"));
 
 		registry.register(
 			"11.0.0", "11.1.0",
@@ -793,7 +793,7 @@ public class CommerceServiceUpgradeStepRegistrator
 			"11.5.3", "12.0.0",
 			UpgradeProcessFactory.alterColumnName(
 				CommerceOrderItemModelImpl.TABLE_NAME, "deliveryGroup",
-				"deliveryGroupName"));
+				"deliveryGroupName VARCHAR(75) null"));
 
 		registry.register(
 			"12.0.0", "13.0.0",
@@ -914,7 +914,7 @@ public class CommerceServiceUpgradeStepRegistrator
 			"15.1.1", "15.1.2",
 			UpgradeProcessFactory.alterColumnName(
 				"CommerceSubscriptionEntry", "CPInstanceUUID",
-				"CPInstanceUuid"));
+				"CPInstanceUuid VARCHAR(75)"));
 
 		registry.register(
 			"15.1.2", "15.1.3",

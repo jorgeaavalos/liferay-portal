@@ -5,7 +5,6 @@
 
 package com.liferay.portal.upgrade.live;
 
-import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.db.DBInspector;
 import com.liferay.portal.kernel.util.StringUtil;
@@ -96,17 +95,13 @@ public class LiveUpgradeSchemaDiff {
 	}
 
 	public void recordAlterColumnName(
-			String oldColumnName, String newColumnName)
+			String oldColumnName, String newColumnDefinition)
 		throws Exception {
 
-		int index = newColumnName.indexOf(CharPool.SPACE);
-
-		if (index != -1) {
-			newColumnName = newColumnName.substring(0, index);
-		}
-
 		oldColumnName = _dbInspector.normalizeName(oldColumnName);
-		newColumnName = _dbInspector.normalizeName(newColumnName);
+
+		String newColumnName = _dbInspector.normalizeName(
+			StringUtil.extractFirst(newColumnDefinition, StringPool.SPACE));
 
 		Column column = _resultColumnsMap.remove(oldColumnName);
 

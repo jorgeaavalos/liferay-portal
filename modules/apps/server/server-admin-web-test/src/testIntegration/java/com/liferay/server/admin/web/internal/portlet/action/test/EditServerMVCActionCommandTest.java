@@ -422,7 +422,7 @@ public class EditServerMVCActionCommandTest {
 			SessionMessages.contains(
 				mockLiferayPortletActionRequest, "verifyDatabaseState"));
 
-		_alterColumnName("companyId", "companyId_backup", "UserTracker");
+		_alterColumnName("companyId_backup LONG", "companyId", "UserTracker");
 
 		try {
 			mockLiferayPortletActionRequest = _verifyDatabaseState();
@@ -442,7 +442,8 @@ public class EditServerMVCActionCommandTest {
 					mockLiferayPortletActionRequest, "verifyDatabaseState"));
 		}
 		finally {
-			_alterColumnName("companyId_backup", "companyId", "UserTracker");
+			_alterColumnName(
+				"companyId LONG", "companyId_backup", "UserTracker");
 		}
 
 		_alterColumnType("city", "VARCHAR(100)", "Address");
@@ -491,14 +492,14 @@ public class EditServerMVCActionCommandTest {
 	}
 
 	private void _alterColumnName(
-			String columnName, String newColumnName, String tableName)
+			String columnDefinition, String columnName, String tableName)
 		throws Exception {
 
 		DB db = DBManagerUtil.getDB();
 
 		try (Connection connection = DataAccess.getConnection()) {
 			db.alterColumnName(
-				connection, tableName, columnName, newColumnName);
+				connection, tableName, columnName, columnDefinition);
 		}
 	}
 

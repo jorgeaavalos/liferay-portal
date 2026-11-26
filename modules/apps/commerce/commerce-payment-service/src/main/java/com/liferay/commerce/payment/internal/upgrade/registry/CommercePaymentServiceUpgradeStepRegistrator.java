@@ -71,7 +71,7 @@ public class CommercePaymentServiceUpgradeStepRegistrator
 			"1.4.0", "1.5.0",
 			UpgradeProcessFactory.alterColumnName(
 				"CommercePaymentEntry", "paymentMethodName",
-				"paymentIntegrationKey"),
+				"paymentIntegrationKey VARCHAR(75) null"),
 			UpgradeProcessFactory.alterColumnType(
 				"CommercePaymentEntry", "transactionCode", "VARCHAR(255) null"),
 			UpgradeProcessFactory.addColumns(
@@ -80,7 +80,7 @@ public class CommercePaymentServiceUpgradeStepRegistrator
 				"redirectURL TEXT null"),
 			UpgradeProcessFactory.alterColumnName(
 				"CommercePaymentMethodGroupRel", "engineKey",
-				"paymentIntegrationKey"),
+				"paymentIntegrationKey VARCHAR(75) null"),
 			UpgradeProcessFactory.addColumns(
 				"CommercePaymentMethodGroupRel", "typeSettings TEXT null"));
 

@@ -336,7 +336,7 @@ public class LayoutClassedModelUsageCTUpgradeProcessTest
 
 			db.alterColumnName(
 				connection, "LayoutClassedModelUsage", columnName,
-				newColumnName);
+				newColumnName + " VARCHAR(75) null");
 		}
 	}
 

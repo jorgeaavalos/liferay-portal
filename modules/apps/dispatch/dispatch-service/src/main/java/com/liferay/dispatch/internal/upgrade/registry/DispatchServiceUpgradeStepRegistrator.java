@@ -34,9 +34,9 @@ public class DispatchServiceUpgradeStepRegistrator
 			UpgradeProcessFactory.addColumns(
 				"DispatchTrigger", "endDate DATE null", "startDate DATE null"),
 			UpgradeProcessFactory.alterColumnName(
-				"DispatchTrigger", "typeSettings", "taskSettings"),
+				"DispatchTrigger", "typeSettings", "taskSettings TEXT null"),
 			UpgradeProcessFactory.alterColumnName(
-				"DispatchTrigger", "type_", "taskType"));
+				"DispatchTrigger", "type_", "taskType VARCHAR(75) null"));
 
 		registry.register(
 			"2.0.0", "2.1.0",
@@ -46,7 +46,8 @@ public class DispatchServiceUpgradeStepRegistrator
 		registry.register(
 			"2.1.0", "3.0.0",
 			UpgradeProcessFactory.alterColumnName(
-				"DispatchTrigger", "taskType", "taskExecutorType"));
+				"DispatchTrigger", "taskType",
+				"taskExecutorType VARCHAR(75) null"));
 
 		registry.register(
 			"3.0.0", "3.1.0",
@@ -63,12 +64,13 @@ public class DispatchServiceUpgradeStepRegistrator
 			"3.1.1", "4.0.0",
 			UpgradeProcessFactory.alterColumnName(
 				"DispatchTrigger", "taskClusterMode",
-				"dispatchTaskClusterMode"),
+				"dispatchTaskClusterMode INTEGER null"),
 			UpgradeProcessFactory.alterColumnName(
 				"DispatchTrigger", "taskExecutorType",
-				"dispatchTaskExecutorType"),
+				"dispatchTaskExecutorType VARCHAR(75) null"),
 			UpgradeProcessFactory.alterColumnName(
-				"DispatchTrigger", "taskSettings", "dispatchTaskSettings"));
+				"DispatchTrigger", "taskSettings",
+				"dispatchTaskSettings TEXT null"));
 
 		registry.register(
 			"4.0.0", "4.0.1",

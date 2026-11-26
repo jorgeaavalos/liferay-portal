@@ -151,17 +151,19 @@ public class SegmentsExperienceUpgradeProcessTest
 
 		try {
 			_db.alterColumnName(
-				_connection, "LayoutPageTemplateStructure", "plid", "classPK");
+				_connection, "LayoutPageTemplateStructure", "plid",
+				"classPK LONG");
 			_db.alterColumnName(
-				_connection, "FragmentEntryLink", "plid", "plid2");
+				_connection, "FragmentEntryLink", "plid", "plid2 LONG");
 
 			runUpgrade();
 		}
 		finally {
 			_db.alterColumnName(
-				_connection, "LayoutPageTemplateStructure", "classPK", "plid");
+				_connection, "LayoutPageTemplateStructure", "classPK",
+				"plid LONG");
 			_db.alterColumnName(
-				_connection, "FragmentEntryLink", "plid2", "plid");
+				_connection, "FragmentEntryLink", "plid2", "plid LONG");
 		}
 
 		_assertSegmentsExperiences();
@@ -175,13 +177,13 @@ public class SegmentsExperienceUpgradeProcessTest
 
 		try {
 			_db.alterColumnName(
-				_connection, "FragmentEntryLink", "plid", "plid2");
+				_connection, "FragmentEntryLink", "plid", "plid2 LONG");
 
 			runUpgrade();
 		}
 		finally {
 			_db.alterColumnName(
-				_connection, "FragmentEntryLink", "plid2", "plid");
+				_connection, "FragmentEntryLink", "plid2", "plid LONG");
 		}
 
 		_assertSegmentsExperiences();
@@ -195,13 +197,15 @@ public class SegmentsExperienceUpgradeProcessTest
 
 		try {
 			_db.alterColumnName(
-				_connection, "LayoutPageTemplateStructure", "plid", "classPK");
+				_connection, "LayoutPageTemplateStructure", "plid",
+				"classPK LONG");
 
 			runUpgrade();
 		}
 		finally {
 			_db.alterColumnName(
-				_connection, "LayoutPageTemplateStructure", "classPK", "plid");
+				_connection, "LayoutPageTemplateStructure", "classPK",
+				"plid LONG");
 		}
 
 		_assertSegmentsExperiences();
@@ -215,7 +219,8 @@ public class SegmentsExperienceUpgradeProcessTest
 
 		try {
 			_db.alterColumnName(
-				_connection, "LayoutPageTemplateStructure", "plid", "classPK");
+				_connection, "LayoutPageTemplateStructure", "plid",
+				"classPK LONG");
 			_db.alterTableDropColumn(
 				_connection, "FragmentEntryLink", "segmentsExperienceId");
 			_db.alterTableDropColumn(
@@ -226,7 +231,8 @@ public class SegmentsExperienceUpgradeProcessTest
 		}
 		finally {
 			_db.alterColumnName(
-				_connection, "LayoutPageTemplateStructure", "classPK", "plid");
+				_connection, "LayoutPageTemplateStructure", "classPK",
+				"plid LONG");
 			_db.alterTableAddColumn(
 				_connection, "FragmentEntryLink", "segmentsExperienceId",
 				"LONG");
@@ -244,7 +250,8 @@ public class SegmentsExperienceUpgradeProcessTest
 
 		try {
 			_db.alterColumnName(
-				_connection, "LayoutPageTemplateStructure", "plid", "classPK");
+				_connection, "LayoutPageTemplateStructure", "plid",
+				"classPK LONG");
 			_db.alterTableDropColumn(
 				_connection, "FragmentEntryLink", "ctCollectionId");
 			_db.alterTableDropColumn(
@@ -255,7 +262,8 @@ public class SegmentsExperienceUpgradeProcessTest
 		}
 		finally {
 			_db.alterColumnName(
-				_connection, "LayoutPageTemplateStructure", "classPK", "plid");
+				_connection, "LayoutPageTemplateStructure", "classPK",
+				"plid LONG");
 			_db.alterTableAddColumn(
 				_connection, "FragmentEntryLink", "ctCollectionId",
 				"LONG default 0 not null");

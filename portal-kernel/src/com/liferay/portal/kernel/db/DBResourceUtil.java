@@ -115,17 +115,6 @@ public class DBResourceUtil {
 		return liferayTableNames;
 	}
 
-	public static Map<String, List<String>> getModuleColumnDefinitionsMap() {
-		Map<String, List<String>> columnDefinitionsMap = new TreeMap<>(
-			String.CASE_INSENSITIVE_ORDER);
-
-		for (Bundle bundle : _getLiferayServiceBundles()) {
-			columnDefinitionsMap.putAll(getModuleColumnDefinitionsMap(bundle));
-		}
-
-		return columnDefinitionsMap;
-	}
-
 	public static Map<String, List<String>> getModuleColumnDefinitionsMap(
 		Bundle bundle) {
 
@@ -331,8 +320,9 @@ public class DBResourceUtil {
 		return tableNames;
 	}
 
-	private static List<Bundle> _getLiferayServiceBundles() {
-		List<Bundle> bundles = new ArrayList<>();
+	private static Set<String> _getModuleTableNames() {
+		Set<String> moduleTableNames = new TreeSet<>(
+			String.CASE_INSENSITIVE_ORDER);
 
 		BundleContext bundleContext = SystemBundleUtil.getBundleContext();
 
@@ -345,17 +335,6 @@ public class DBResourceUtil {
 				continue;
 			}
 
-			bundles.add(bundle);
-		}
-
-		return bundles;
-	}
-
-	private static Set<String> _getModuleTableNames() {
-		Set<String> moduleTableNames = new TreeSet<>(
-			String.CASE_INSENSITIVE_ORDER);
-
-		for (Bundle bundle : _getLiferayServiceBundles()) {
 			String tableSQL = getModuleTablesSQL(bundle);
 
 			if (tableSQL == null) {

@@ -40,18 +40,18 @@ public class UpgradeProcessFactory {
 	}
 
 	public static UpgradeProcess alterColumnName(
-		String tableName, String oldColumnName, String newColumnName) {
+		String tableName, String oldColumnName, String newColumnDefinition) {
 
 		return new UpgradeProcess(
 			_getUpgradeInfo(
 				tableName,
 				StringBundler.concat(
 					"alter the name of the column ", oldColumnName, " to ",
-					newColumnName))) {
+					newColumnDefinition))) {
 
 			@Override
 			protected void doUpgrade() throws Exception {
-				alterColumnName(tableName, oldColumnName, newColumnName);
+				alterColumnName(tableName, oldColumnName, newColumnDefinition);
 			}
 
 		};

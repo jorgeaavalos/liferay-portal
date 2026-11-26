@@ -45,7 +45,7 @@ public class CPDefinitionVirtualSettingUpgradeProcess extends UpgradeProcess {
 				"CPDefinitionVirtualSetting", "classNameId LONG",
 				"override BOOLEAN"),
 			UpgradeProcessFactory.alterColumnName(
-				"CPDefinitionVirtualSetting", "CPDefinitionId", "classPK")
+				"CPDefinitionVirtualSetting", "CPDefinitionId", "classPK LONG")
 		};
 	}
 

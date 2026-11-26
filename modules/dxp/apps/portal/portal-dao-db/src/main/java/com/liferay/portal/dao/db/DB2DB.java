@@ -52,11 +52,8 @@ public class DB2DB extends BaseDB {
 	@Override
 	public void alterColumnName(
 			Connection connection, String tableName, String oldColumnName,
-			String newColumnName)
+			String newColumnDefinition)
 		throws Exception {
-
-		newColumnName = getNewColumnName(
-			newColumnName, oldColumnName, tableName);
 
 		List<IndexMetadata> indexMetadatas = dropIndexes(
 			connection, tableName, oldColumnName);
@@ -77,10 +74,10 @@ public class DB2DB extends BaseDB {
 		}
 
 		super.alterColumnName(
-			connection, tableName, oldColumnName, newColumnName);
+			connection, tableName, oldColumnName, newColumnDefinition);
 
 		String normalizedNewColumnName = dbInspector.normalizeName(
-			newColumnName);
+			StringUtil.extractFirst(newColumnDefinition, StringPool.SPACE));
 
 		if (primaryKey) {
 			ArrayUtil.replace(
@@ -176,9 +173,12 @@ public class DB2DB extends BaseDB {
 			}
 
 			alterColumnName(
-				connection, tableName, columnName, tempColumnName + "2");
+				connection, tableName, columnName,
+				tempColumnName + "2 " + newColumnType);
 
-			alterColumnName(connection, tableName, tempColumnName, columnName);
+			alterColumnName(
+				connection, tableName, tempColumnName,
+				columnName + StringPool.SPACE + newColumnType);
 
 			if (!indexMetadatas.isEmpty()) {
 				addIndexes(connection, indexMetadatas);

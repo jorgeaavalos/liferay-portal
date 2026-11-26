@@ -122,7 +122,8 @@ public class LiveUpgradeExecutorTest {
 	public void testAlterColumnName() throws Exception {
 		_liveUpgradeExecutor.upgrade(
 			_TABLE_NAME,
-			LiveUpgradeProcessFactory.alterColumnName("name", "title"));
+			LiveUpgradeProcessFactory.alterColumnName(
+				"name", "title VARCHAR(128) not null"));
 
 		Assert.assertFalse(_dbInspector.hasColumn(_TABLE_NAME, "name"));
 		Assert.assertTrue(_dbInspector.hasColumn(_TABLE_NAME, "title"));
@@ -196,7 +197,8 @@ public class LiveUpgradeExecutorTest {
 			_TABLE_NAME,
 			LiveUpgradeProcessFactory.addColumns(
 				"content SBLOB", "version LONG null"),
-			LiveUpgradeProcessFactory.alterColumnName("name", "title"),
+			LiveUpgradeProcessFactory.alterColumnName(
+				"name", "title VARCHAR(128) not null"),
 			LiveUpgradeProcessFactory.alterColumnType(
 				"title", "VARCHAR(255) null"),
 			LiveUpgradeProcessFactory.dropColumns("content"));

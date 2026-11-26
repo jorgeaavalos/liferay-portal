@@ -56,7 +56,8 @@ public class CommerceProductTypeVirtualServiceUpgradeStepRegistrator
 		registry.register(
 			"1.2.0", "2.0.0",
 			UpgradeProcessFactory.alterColumnName(
-				"CPDefinitionVirtualSetting", "sampleUrl", "sampleURL"));
+				"CPDefinitionVirtualSetting", "sampleUrl",
+				"sampleURL VARCHAR(255) null"));
 
 		registry.register("2.0.0", "2.0.1", new DummyUpgradeProcess());
 
